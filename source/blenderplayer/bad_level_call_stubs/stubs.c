@@ -248,7 +248,7 @@ struct RenderPass *RE_pass_find_by_name(volatile struct RenderLayer *rl, const c
 struct RenderPass *RE_pass_find_by_type(volatile struct RenderLayer *rl, int passtype, const char *viewname) RET_NULL
 bool RE_HasFakeLayer(RenderResult *res) RET_ZERO
 void RE_engine_register_pass(struct RenderEngine *engine, struct Scene *scene, struct SceneRenderLayer *srl,
-                             const char *name, int channels, const char *chanid, int type) RET_NULL
+                             const char *name, int channels, const char *chanid, int type) RET_NONE
 /* zbuf.c stub */
 void antialias_tagbuf(int xsize, int ysize, char *rectmove) RET_NONE
 void RE_zbuf_accumulate_vecblur(struct NodeBlurData *nbd, int xsize, int ysize, float *newrect, const float *imgrect, float *vecbufrect, const float *zbufrect) RET_NONE
@@ -656,7 +656,7 @@ struct RenderData *RE_engine_get_render_data(struct Render *re) RET_NULL
 void RE_engine_update_result(struct RenderEngine *engine, struct RenderResult *result) RET_NONE
 void RE_engine_update_progress(struct RenderEngine *engine, float progress) RET_NONE
 void RE_engine_set_error_message(RenderEngine *engine, const char *msg) RET_NONE
-void RE_engine_add_pass(RenderEngine *engine, const char *name, int channels, const char *chan_id, const char *layername, const char *viewname) RET_NONE
+void RE_engine_add_pass(RenderEngine *engine, const char *name, int channels, const char *chan_id, const char *layername, int pixel_type) RET_NONE
 void RE_engine_end_result(RenderEngine *engine, struct RenderResult *result, int cancel, int merge_results) RET_NONE
 void RE_engine_update_stats(RenderEngine *engine, const char *stats, const char *info) RET_NONE
 void RE_layer_load_from_file(struct RenderLayer *layer, struct ReportList *reports, const char *filename, int x, int y) RET_NONE
