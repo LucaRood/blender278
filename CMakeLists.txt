@@ -592,6 +592,10 @@ if(WIN32)
 	mark_as_advanced(WINDOWS_USE_VISUAL_STUDIO_FOLDERS)
 endif()
 
+# Caching
+
+option(WITH_OMNICACHE "Build Blender with OmniCache physics caching system" OFF)
+
 # avoid using again
 option_defaults_clear()
 

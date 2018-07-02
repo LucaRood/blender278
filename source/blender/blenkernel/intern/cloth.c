@@ -52,6 +52,10 @@
 
 #include "BPH_mass_spring.h"
 
+#ifdef WITH_OMNICACHE
+#  include "omnicache.h"
+#endif
+
 // #include "PIL_time.h"  /* timing for debug prints */
 
 /* ********** cloth engine ******* */

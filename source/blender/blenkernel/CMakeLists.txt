@@ -540,4 +540,11 @@ if(WITH_LEGACY_DEPSGRAPH)
 	add_definitions(-DWITH_LEGACY_DEPSGRAPH)
 endif()
 
+if(WITH_OMNICACHE)
+	add_definitions(-DWITH_OMNICACHE)
+	list(APPEND INC_SYS
+		../../../extern/omnicache
+	)
+endif()
+
 blender_add_lib(bf_blenkernel "${SRC}" "${INC}" "${INC_SYS}")

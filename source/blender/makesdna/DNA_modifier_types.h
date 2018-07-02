@@ -614,6 +614,8 @@ typedef struct ClothModifierData {
 	float hair_grid_cellsize;
 
 	struct ClothSolverResult *solver_result;
+
+	struct OmniCache *cache;
 } ClothModifierData;
 
 typedef struct CollisionModifierData {

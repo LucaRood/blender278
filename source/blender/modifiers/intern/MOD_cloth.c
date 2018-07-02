@@ -57,6 +57,10 @@
 
 #include "MOD_util.h"
 
+#ifdef WITH_OMNICACHE
+#  include "omnicache.h"
+#endif
+
 static void initData(ModifierData *md)
 {
 	ClothModifierData *clmd = (ClothModifierData *) md;

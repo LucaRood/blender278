@@ -109,3 +109,7 @@ endif()
 if(WITH_SDL AND WITH_SDL_DYNLOAD)
 	add_subdirectory(sdlew)
 endif()
+
+if(WITH_OMNICACHE)
+	add_subdirectory(omnicache)
+endif()
