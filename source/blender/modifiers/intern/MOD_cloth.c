@@ -133,7 +133,7 @@ static const OmniCacheTemplate cache_template = {
     .time_initial = OMNI_U_TO_FU(1),
     .time_final = OMNI_U_TO_FU(250),
     .time_step = OMNI_U_TO_FU(1),
-    .flags = OMNICACHE_FLAG_FRAMED,
+    .flags = OMNICACHE_FLAG_FRAMED | OMNICACHE_FLAG_INTERP_SUB,
     .num_blocks = 3,
 };
 
@@ -141,6 +141,7 @@ static const OmniBlockTemplateArray cache_block_templates = {
     {
         .name = "x",
         .data_type = OMNI_DATA_FLOAT3,
+        .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
         .count = cache_count,
         .read = cache_read_x,
         .write = cache_write_x,
@@ -148,6 +149,7 @@ static const OmniBlockTemplateArray cache_block_templates = {
     {
         .name = "v",
         .data_type = OMNI_DATA_FLOAT3,
+        .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
         .count = cache_count,
         .read = cache_read_v,
         .write = cache_write_v,
@@ -155,6 +157,7 @@ static const OmniBlockTemplateArray cache_block_templates = {
     {
         .name = "xconst",
         .data_type = OMNI_DATA_FLOAT3,
+        .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
         .count = cache_count,
         .read = cache_read_xconst,
         .write = cache_write_xconst,
