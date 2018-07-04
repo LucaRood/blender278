@@ -38,6 +38,7 @@
 #include "DNA_key_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_object_types.h"
+#include "DNA_object_force_types.h"
 
 #include "MEM_guardedalloc.h"
 
@@ -51,7 +52,10 @@
 #include "BKE_key.h"
 #include "BKE_library_query.h"
 #include "BKE_modifier.h"
-#include "BKE_pointcache.h"
+
+#ifndef WITH_OMNICACHE
+#  include "BKE_pointcache.h"
+#endif
 
 #include "depsgraph_private.h"
 
@@ -61,16 +65,118 @@
 #  include "omnicache.h"
 #endif
 
+#ifdef WITH_OMNICACHE
+/* Just for convenience. */
+typedef float float3[3];
+
+/* OmniCache callbacks */
+
+static uint cache_count(void *data)
+{
+	ClothModifierData *clmd = (ClothModifierData *)data;
+
+	return clmd->clothObject->mvert_num;
+}
+
+#define CACHE_RW(target, source) {                       \
+	ClothModifierData *clmd = (ClothModifierData *)data; \
+	Cloth *cloth = clmd->clothObject;                    \
+	float3 *array = (float3 *)omni_data->data;           \
+	if (omni_data->dcount != cloth->mvert_num) {         \
+		return false;                                    \
+	}                                                    \
+	for (uint i = 0; i < cloth->mvert_num; i++) {        \
+		ClothVertex *vert = &cloth->verts[i];            \
+		float3 *a = &array[i];                           \
+		memcpy(target, source, sizeof(float3));          \
+	}                                                    \
+	return true;                                         \
+}
+
+#define CACHE_READ(prop) CACHE_RW(vert->prop, a)
+#define CACHE_WRITE(prop) CACHE_RW(a, vert->prop)
+
+static bool cache_read_x(OmniData *omni_data, void *data)
+{
+	CACHE_READ(x);
+}
+
+static bool cache_read_v(OmniData *omni_data, void *data)
+{
+	CACHE_READ(v);
+}
+
+static bool cache_read_xconst(OmniData *omni_data, void *data)
+{
+	CACHE_READ(xconst);
+}
+
+static bool cache_write_x(OmniData *omni_data, void *data)
+{
+	CACHE_WRITE(x);
+}
+
+static bool cache_write_v(OmniData *omni_data, void *data)
+{
+	CACHE_WRITE(v);
+}
+
+static bool cache_write_xconst(OmniData *omni_data, void *data)
+{
+	CACHE_WRITE(xconst);
+}
+
+/* OmniCache templates */
+
+static const OmniCacheTemplate cache_template = {
+    .time_type = OMNI_TIME_INT,
+    .time_initial = OMNI_U_TO_FU(1),
+    .time_final = OMNI_U_TO_FU(250),
+    .time_step = OMNI_U_TO_FU(1),
+    .flags = OMNICACHE_FLAG_FRAMED,
+    .num_blocks = 3,
+};
+
+static const OmniBlockTemplateArray cache_block_templates = {
+    {
+        .name = "x",
+        .data_type = OMNI_DATA_FLOAT3,
+        .count = cache_count,
+        .read = cache_read_x,
+        .write = cache_write_x,
+    },
+    {
+        .name = "v",
+        .data_type = OMNI_DATA_FLOAT3,
+        .count = cache_count,
+        .read = cache_read_v,
+        .write = cache_write_v,
+    },
+    {
+        .name = "xconst",
+        .data_type = OMNI_DATA_FLOAT3,
+        .count = cache_count,
+        .read = cache_read_xconst,
+        .write = cache_write_xconst,
+    },
+};
+#endif
+
 static void initData(ModifierData *md)
 {
 	ClothModifierData *clmd = (ClothModifierData *) md;
 
 	clmd->sim_parms = MEM_callocN(sizeof(ClothSimSettings), "cloth sim parms");
 	clmd->coll_parms = MEM_callocN(sizeof(ClothCollSettings), "cloth coll parms");
+
+#ifdef WITH_OMNICACHE
+	clmd->cache = OMNI_new(&cache_template, cache_block_templates);
+#else
 	clmd->point_cache = BKE_ptcache_add(&clmd->ptcaches);
+#endif
 
 	/* check for alloc failing */
-	if (!clmd->sim_parms || !clmd->coll_parms || !clmd->point_cache)
+	if (!clmd->sim_parms || !clmd->coll_parms || (!clmd->point_cache && !clmd->cache))
 		return;
 
 	cloth_init(clmd);
@@ -187,14 +293,18 @@ static void copyData(const ModifierData *md, ModifierData *target)
 	if (tclmd->coll_parms)
 		MEM_freeN(tclmd->coll_parms);
 
+#ifdef WITH_OMNICACHE
+	/* TODO (luca): Cache should actually be duplicated. */
+	tclmd->cache = OMNI_new(&cache_template, cache_block_templates);
+#else
 	BKE_ptcache_free_list(&tclmd->ptcaches);
-	tclmd->point_cache = NULL;
+	tclmd->point_cache = BKE_ptcache_copy_list(&tclmd->ptcaches, &clmd->ptcaches, true);
+#endif
 
 	tclmd->sim_parms = MEM_dupallocN(clmd->sim_parms);
 	if (clmd->sim_parms->effector_weights)
 		tclmd->sim_parms->effector_weights = MEM_dupallocN(clmd->sim_parms->effector_weights);
 	tclmd->coll_parms = MEM_dupallocN(clmd->coll_parms);
-	tclmd->point_cache = BKE_ptcache_copy_list(&tclmd->ptcaches, &clmd->ptcaches, true);
 	tclmd->clothObject = NULL;
 	tclmd->hairdata = NULL;
 	tclmd->solver_result = NULL;
@@ -223,8 +333,13 @@ static void freeData(ModifierData *md)
 		if (clmd->coll_parms)
 			MEM_freeN(clmd->coll_parms);
 
+#ifdef WITH_OMNICACHE
+		OMNI_free(clmd->cache);
+		clmd->cache = NULL;
+#else
 		BKE_ptcache_free_list(&clmd->ptcaches);
 		clmd->point_cache = NULL;
+#endif
 
 		if (clmd->hairdata)
 			MEM_freeN(clmd->hairdata);

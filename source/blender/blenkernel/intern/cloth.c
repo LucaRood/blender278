@@ -48,7 +48,10 @@
 #include "BKE_effect.h"
 #include "BKE_global.h"
 #include "BKE_modifier.h"
-#include "BKE_pointcache.h"
+
+#ifndef WITH_OMNICACHE
+#  include "BKE_pointcache.h"
+#endif
 
 #include "BPH_mass_spring.h"
 
@@ -162,8 +165,10 @@ void cloth_init(ClothModifierData *clmd )
 	if (!clmd->sim_parms->effector_weights)
 		clmd->sim_parms->effector_weights = BKE_add_effector_weights(NULL);
 
+#ifndef WITH_OMNICACHE
 	if (clmd->point_cache)
 		clmd->point_cache->step = 1;
+#endif
 }
 
 static BVHTree *bvhtree_build_from_cloth (ClothModifierData *clmd, float epsilon)
@@ -266,6 +271,7 @@ void bvhtree_update_from_cloth(ClothModifierData *clmd, bool moving, bool self)
 	}
 }
 
+#ifndef WITH_OMNICACHE
 void cloth_clear_cache(Object *ob, ClothModifierData *clmd, float framenr)
 {
 	PTCacheID pid;
@@ -278,23 +284,34 @@ void cloth_clear_cache(Object *ob, ClothModifierData *clmd, float framenr)
 	
 	BKE_ptcache_id_clear(&pid, PTCACHE_CLEAR_AFTER, framenr);
 }
+#endif
 
 static int do_init_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *result, int framenr)
 {
-	PointCache *cache;
-
-	cache= clmd->point_cache;
+#ifdef WITH_OMNICACHE
+	OmniCache *cache = clmd->cache;
+#else
+	PointCache *cache = clmd->point_cache;
+#endif
 
 	/* initialize simulation data if it didn't exist already */
 	if (clmd->clothObject == NULL) {
 		if (!cloth_from_object(ob, clmd, result, framenr, 1)) {
+#ifdef WITH_OMNICACHE
+			OMNI_mark_invalid(cache); /* TODO (luca): Cache should probably be freed instead. */
+#else
 			BKE_ptcache_invalidate(cache);
+#endif
 			modifier_setError(&(clmd->modifier), "Can't initialize cloth");
 			return 0;
 		}
 	
 		if (clmd->clothObject == NULL) {
+#ifdef WITH_OMNICACHE
+			OMNI_mark_invalid(cache); /* TODO (luca): Cache should probably be freed instead. */
+#else
 			BKE_ptcache_invalidate(cache);
+#endif
 			modifier_setError(&(clmd->modifier), "Null cloth object");
 			return 0;
 		}
@@ -369,27 +386,53 @@ static int do_step_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *resul
  ************************************************/
 void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, DerivedMesh *dm, float (*vertexCos)[3])
 {
-	PointCache *cache;
+#ifdef WITH_OMNICACHE
+	OmniCache *cache = clmd->cache;
+#else
+	PointCache *cache = clmd->point_cache;;
 	PTCacheID pid;
+#endif
+
 	float timescale;
 	int framenr, startframe, endframe;
 	int cache_result;
 
+	/* TODO (luca): Might want to store a `float_or_uint` version of the time here, for repeated use. */
+
 	clmd->scene= scene;	/* nice to pass on later :) */
 	framenr= (int)scene->r.cfra;
-	cache= clmd->point_cache;
 
+#ifdef WITH_OMNICACHE
+	{
+		float_or_uint start, end;
+
+		OMNI_get_range(cache, &start, &end, NULL);
+
+		startframe = OMNI_FU_GET(start);
+		endframe = OMNI_FU_GET(end);
+
+		timescale = scene->r.framelen;
+	}
+#else
 	BKE_ptcache_id_from_cloth(&pid, ob, clmd);
 	BKE_ptcache_id_time(&pid, scene, framenr, &startframe, &endframe, &timescale);
+#endif
+
 	clmd->sim_parms->timescale= timescale * clmd->sim_parms->time_scale;
 
 	if (clmd->sim_parms->reset || (clmd->clothObject && dm->getNumVerts(dm) != clmd->clothObject->mvert_num)) {
 		clmd->sim_parms->reset = 0;
+
+#ifdef WITH_OMNICACHE
+		/* TODO (luca): Should later use a `clear_all` function. Also, cache should be validated here. */
+		OMNI_sample_clear_from(cache, OMNI_u_to_fu(startframe));
+#else
 		cache->flag |= PTCACHE_OUTDATED;
 		BKE_ptcache_id_reset(scene, &pid, PTCACHE_RESET_OUTDATED);
 		BKE_ptcache_validate(cache, 0);
 		cache->last_exact= 0;
 		cache->flag &= ~PTCACHE_REDO_NEEDED;
+#endif
 	}
 
 	/* simulation is only active during a specific period */
@@ -404,6 +447,17 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 	if (!do_init_cloth(ob, clmd, dm, framenr))
 		return;
 
+#ifdef WITH_OMNICACHE
+	/* TODO (luca): This should probably use a global cache validity check instad of a sample check. */
+	if (framenr == startframe && !OMNI_sample_is_current(cache, OMNI_u_to_fu(startframe))) {
+		/* TODO (luca): Should later use a `clear_all` function. Also, cache should be validated here. */
+		OMNI_sample_clear_from(cache, OMNI_u_to_fu(startframe));
+		do_init_cloth(ob, clmd, dm, framenr);
+		clmd->clothObject->last_frame= framenr;
+		OMNI_sample_write(cache, OMNI_u_to_fu(startframe), clmd);
+		return;
+	}
+#else
 	if (framenr == startframe && ((cache->flag & PTCACHE_OUTDATED) || (cache->last_exact < startframe))) {
 		BKE_ptcache_id_reset(scene, &pid, PTCACHE_RESET_OUTDATED);
 		do_init_cloth(ob, clmd, dm, framenr);
@@ -413,8 +467,30 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		BKE_ptcache_write(&pid, startframe);
 		return;
 	}
+#endif
 
 	/* try to read from cache */
+#ifdef WITH_OMNICACHE
+	bool can_simulate = (framenr == clmd->clothObject->last_frame + 1);
+
+	/* TODO (luca): Should respect subframe here, and interpolate between frames. */
+	cache_result = OMNI_sample_read(cache, OMNI_u_to_fu(framenr), clmd);
+
+	if (cache_result == OMNI_READ_EXACT || cache_result == OMNI_READ_INTERP ||
+	    (!can_simulate && cache_result == OMNI_READ_OUTDATED)) {
+		BKE_cloth_solver_set_positions(clmd);
+		cloth_to_object(ob, clmd, vertexCos);
+
+		/* TODO (luca): Might want to write interpolated result to cache... Or not. */
+
+		clmd->clothObject->last_frame = framenr;
+
+		return;
+	}
+	else if (cache_result == OMNI_READ_OUTDATED) {
+		BKE_cloth_solver_set_positions(clmd);
+	}
+#else
 	bool can_simulate = (framenr == clmd->clothObject->last_frame + 1) &&
 	                    (framenr == cache->last_exact + 1) &&
 	                    !(cache->flag & PTCACHE_BAKED);
@@ -444,13 +520,26 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		BKE_ptcache_invalidate(cache);
 		return;
 	}
+#endif
 
 	if (!can_simulate)
 		return;
 
+	/* TODO (luca): get last frame number (not strictly necessary,
+	 * since we checked that the time is always one frame ahead of the last frame anyway) */
+#ifndef WITH_OMNICACHE
 	clmd->sim_parms->timescale *= framenr - cache->simframe;
+#endif
 
 	/* do simulation */
+#ifdef WITH_OMNICACHE
+	if (!do_step_cloth(ob, clmd, dm, framenr)) {
+		OMNI_sample_mark_invalid_from(cache, OMNI_u_to_fu(framenr));
+	}
+	else {
+		OMNI_sample_write(cache, OMNI_u_to_fu(framenr), clmd);
+	}
+#else
 	BKE_ptcache_validate(cache, framenr);
 
 	if (!do_step_cloth(ob, clmd, dm, framenr)) {
@@ -458,6 +547,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 	}
 	else
 		BKE_ptcache_write(&pid, framenr);
+#endif
 
 	cloth_to_object (ob, clmd, vertexCos);
 	clmd->clothObject->last_frame= framenr;
