@@ -298,7 +298,7 @@ static int do_init_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *resul
 	if (clmd->clothObject == NULL) {
 		if (!cloth_from_object(ob, clmd, result, framenr, 1)) {
 #ifdef WITH_OMNICACHE
-			OMNI_mark_invalid(cache); /* TODO (luca): Cache should probably be freed instead. */
+			OMNI_clear(cache);
 #else
 			BKE_ptcache_invalidate(cache);
 #endif
@@ -308,7 +308,7 @@ static int do_init_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *resul
 	
 		if (clmd->clothObject == NULL) {
 #ifdef WITH_OMNICACHE
-			OMNI_mark_invalid(cache); /* TODO (luca): Cache should probably be freed instead. */
+			OMNI_clear(cache);
 #else
 			BKE_ptcache_invalidate(cache);
 #endif
@@ -424,8 +424,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		clmd->sim_parms->reset = 0;
 
 #ifdef WITH_OMNICACHE
-		/* TODO (luca): Should later use a `clear_all` function. Also, cache should be validated here. */
-		OMNI_sample_clear_from(cache, OMNI_u_to_fu(startframe));
+		OMNI_clear(cache);
 #else
 		cache->flag |= PTCACHE_OUTDATED;
 		BKE_ptcache_id_reset(scene, &pid, PTCACHE_RESET_OUTDATED);
@@ -450,8 +449,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 #ifdef WITH_OMNICACHE
 	/* TODO (luca): This should probably use a global cache validity check instad of a sample check. */
 	if (framenr == startframe && !OMNI_sample_is_current(cache, OMNI_u_to_fu(startframe))) {
-		/* TODO (luca): Should later use a `clear_all` function. Also, cache should be validated here. */
-		OMNI_sample_clear_from(cache, OMNI_u_to_fu(startframe));
+		OMNI_clear(cache);
 		do_init_cloth(ob, clmd, dm, framenr);
 		clmd->clothObject->last_frame= framenr;
 		OMNI_sample_write(cache, OMNI_u_to_fu(startframe), clmd);
