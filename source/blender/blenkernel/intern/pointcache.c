@@ -108,6 +108,10 @@
 #  include "BLI_winstuff.h"
 #endif
 
+#ifdef WITH_OMNICACHE
+#  include "omnicache.h"
+#endif
+
 #define PTCACHE_DATA_FROM(data, type, from)  \
 	if (data[type]) { \
 		memcpy(data[type], from, ptcache_data_size[type]); \
@@ -3323,8 +3327,13 @@ int  BKE_ptcache_object_reset(Scene *scene, Object *ob, int mode)
 
 	for (md=ob->modifiers.first; md; md=md->next) {
 		if (md->type == eModifierType_Cloth) {
+#ifdef WITH_OMNICACHE
+			ClothModifierData *clmd = (ClothModifierData *)md;
+			OMNI_sample_clear_from(clmd->cache, OMNI_u_to_fu(CFRA));
+#else
 			BKE_ptcache_id_from_cloth(&pid, ob, (ClothModifierData*)md);
 			reset |= BKE_ptcache_id_reset(scene, &pid, mode);
+#endif
 		}
 		if (md->type == eModifierType_Smoke) {
 			SmokeModifierData *smd = (SmokeModifierData *)md;
