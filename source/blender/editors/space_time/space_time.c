@@ -71,6 +71,10 @@
 
 #include "time_intern.h"
 
+#ifdef WITH_OMNICACHE
+#  include "omnicache.h"
+#endif
+
 /* ************************ main time area region *********************** */
 
 static void time_draw_sfra_efra(Scene *scene, View2D *v2d)
@@ -97,7 +101,131 @@ static void time_draw_sfra_efra(Scene *scene, View2D *v2d)
 	fdrawline((float)PEFRA, v2d->cur.ymin, (float)PEFRA, v2d->cur.ymax);
 }
 
-static void time_draw_cache(Main *bmain, SpaceTime *stime, Object *ob, Scene *scene)
+static void time_draw_cache(const float *array, const uint count,
+                            const float start, const float end,
+                            const float height, const float offset,
+                            const uint type, const int flag)
+{
+	float col[4];
+
+	glPushMatrix();
+	glTranslatef(0.0, (float)V2D_SCROLL_HEIGHT + offset, 0.0);
+	glScalef(1.0, height, 0.0);
+
+	switch (type) {
+		case PTCACHE_TYPE_SOFTBODY:
+			col[0] = 1.0;   col[1] = 0.4;   col[2] = 0.02;
+			col[3] = 0.1;
+			break;
+		case PTCACHE_TYPE_PARTICLES:
+			col[0] = 1.0;   col[1] = 0.1;   col[2] = 0.02;
+			col[3] = 0.1;
+			break;
+		case PTCACHE_TYPE_CLOTH:
+			col[0] = 0.1;   col[1] = 0.1;   col[2] = 0.75;
+			col[3] = 0.1;
+			break;
+		case PTCACHE_TYPE_SMOKE_DOMAIN:
+		case PTCACHE_TYPE_SMOKE_HIGHRES:
+			col[0] = 0.2;   col[1] = 0.2;   col[2] = 0.2;
+			col[3] = 0.1;
+			break;
+		case PTCACHE_TYPE_DYNAMICPAINT:
+			col[0] = 1.0;   col[1] = 0.1;   col[2] = 0.75;
+			col[3] = 0.1;
+			break;
+		case PTCACHE_TYPE_RIGIDBODY:
+			col[0] = 1.0;   col[1] = 0.6;   col[2] = 0.0;
+			col[3] = 0.1;
+			break;
+		default:
+			col[0] = 1.0;   col[1] = 0.0;   col[2] = 1.0;
+			col[3] = 0.1;
+			BLI_assert(0);
+			break;
+	}
+	glColor4fv(col);
+
+	glEnable(GL_BLEND);
+
+	glRectf(start, 0.0, end, 1.0);
+
+	col[3] = 0.4f;
+	if (flag & PTCACHE_BAKED) {
+		col[0] -= 0.4f; col[1] -= 0.4f; col[2] -= 0.4f;
+	}
+	else if (flag & PTCACHE_OUTDATED) {
+		col[0] += 0.4f; col[1] += 0.4f; col[2] += 0.4f;
+	}
+	glColor4fv(col);
+
+	glEnableClientState(GL_VERTEX_ARRAY);
+	glVertexPointer(2, GL_FLOAT, 0, array);
+	glDrawArrays(GL_QUADS, 0, count);
+	glDisableClientState(GL_VERTEX_ARRAY);
+
+	glDisable(GL_BLEND);
+
+	glPopMatrix();
+}
+
+#ifdef WITH_OMNICACHE
+static void time_draw_omnicaches(Object *ob, const float height, float offset)
+{
+	for (ModifierData *md = ob->modifiers.first; md; md = md->next) {
+		if (md->type == eModifierType_Cloth) {
+			ClothModifierData *clmd = (ClothModifierData *)md;
+			OmniCache *cache = clmd->cache;
+			uint start, end, count;
+			int flags;
+			float *array, *fp;
+
+			{
+				float_or_uint s, e;
+				OMNI_get_range(cache, &s, &e, NULL);
+
+				start = OMNI_FU_GET(s);
+				end = OMNI_FU_GET(e);
+			}
+
+			count = (end - start + 1) * 4;
+
+			/* TODO (luca): This should use general cache check, instead of sample check. */
+			flags = OMNI_sample_is_current(cache, OMNI_u_to_fu(start)) ? 0 : PTCACHE_OUTDATED;
+
+			array = MEM_callocN(count * 2 * sizeof(float), "OmniCache timeline array");
+			fp = array;
+
+			for (uint i = start; i <= end; i++) {
+				if (OMNI_sample_is_valid(cache, OMNI_u_to_fu(i))) {
+					fp[0] = (float)i - 0.5f;
+					fp[1] = 0.0;
+					fp += 2;
+
+					fp[0] = (float)i - 0.5f;
+					fp[1] = 1.0;
+					fp += 2;
+
+					fp[0] = (float)i + 0.5f;
+					fp[1] = 1.0;
+					fp += 2;
+
+					fp[0] = (float)i + 0.5f;
+					fp[1] = 0.0;
+					fp += 2;
+				}
+			}
+
+			time_draw_cache(array, (fp - array) / 2, start, end,
+			                height, offset, PTCACHE_TYPE_CLOTH, flags);
+
+			offset += height;
+		}
+	}
+}
+#endif
+
+static void time_draw_caches(Main *bmain, SpaceTime *stime, Object *ob, Scene *scene)
 {
 	PTCacheID *pid;
 	ListBase pidlist;
@@ -113,7 +241,7 @@ static void time_draw_cache(Main *bmain, SpaceTime *stime, Object *ob, Scene *sc
 	/* iterate over pointcaches on the active object,
 	 * add spacetimecache and vertex array for each */
 	for (pid = pidlist.first; pid; pid = pid->next) {
-		float col[4], *fp;
+		float *fp;
 		int i, sta = pid->cache->startframe, end = pid->cache->endframe;
 		int len = (end - sta + 1) * 4;
 
@@ -176,65 +304,8 @@ static void time_draw_cache(Main *bmain, SpaceTime *stime, Object *ob, Scene *sc
 			}
 		}
 
-		glPushMatrix();
-		glTranslatef(0.0, (float)V2D_SCROLL_HEIGHT + yoffs, 0.0);
-		glScalef(1.0, cache_draw_height, 0.0);
-
-		switch (pid->type) {
-			case PTCACHE_TYPE_SOFTBODY:
-				col[0] = 1.0;   col[1] = 0.4;   col[2] = 0.02;
-				col[3] = 0.1;
-				break;
-			case PTCACHE_TYPE_PARTICLES:
-				col[0] = 1.0;   col[1] = 0.1;   col[2] = 0.02;
-				col[3] = 0.1;
-				break;
-			case PTCACHE_TYPE_CLOTH:
-				col[0] = 0.1;   col[1] = 0.1;   col[2] = 0.75;
-				col[3] = 0.1;
-				break;
-			case PTCACHE_TYPE_SMOKE_DOMAIN:
-			case PTCACHE_TYPE_SMOKE_HIGHRES:
-				col[0] = 0.2;   col[1] = 0.2;   col[2] = 0.2;
-				col[3] = 0.1;
-				break;
-			case PTCACHE_TYPE_DYNAMICPAINT:
-				col[0] = 1.0;   col[1] = 0.1;   col[2] = 0.75;
-				col[3] = 0.1;
-				break;
-			case PTCACHE_TYPE_RIGIDBODY:
-				col[0] = 1.0;   col[1] = 0.6;   col[2] = 0.0;
-				col[3] = 0.1;
-				break;
-			default:
-				col[0] = 1.0;   col[1] = 0.0;   col[2] = 1.0;
-				col[3] = 0.1;
-				BLI_assert(0);
-				break;
-		}
-		glColor4fv(col);
-
-		glEnable(GL_BLEND);
-
-		glRectf((float)sta, 0.0, (float)end, 1.0);
-
-		col[3] = 0.4f;
-		if (pid->cache->flag & PTCACHE_BAKED) {
-			col[0] -= 0.4f; col[1] -= 0.4f; col[2] -= 0.4f;
-		}
-		else if (pid->cache->flag & PTCACHE_OUTDATED) {
-			col[0] += 0.4f; col[1] += 0.4f; col[2] += 0.4f;
-		}
-		glColor4fv(col);
-
-		glEnableClientState(GL_VERTEX_ARRAY);
-		glVertexPointer(2, GL_FLOAT, 0, stc->array);
-		glDrawArrays(GL_QUADS, 0, (fp - stc->array) / 2);
-		glDisableClientState(GL_VERTEX_ARRAY);
-
-		glDisable(GL_BLEND);
-
-		glPopMatrix();
+		time_draw_cache(stc->array, (fp - stc->array) / 2, sta, end,
+		                cache_draw_height, yoffs, pid->type, pid->cache->flag);
 
 		yoffs += cache_draw_height;
 
@@ -251,6 +322,10 @@ static void time_draw_cache(Main *bmain, SpaceTime *stime, Object *ob, Scene *sc
 		MEM_freeN(stc);
 		stc = tmp;
 	}
+
+#ifdef WITH_OMNICACHE
+	time_draw_omnicaches(ob, cache_draw_height, yoffs);
+#endif
 }
 
 static void time_cache_free(SpaceTime *stime)
@@ -611,7 +686,7 @@ static void time_main_region_draw(const bContext *C, ARegion *ar)
 	ED_markers_draw(C, 0);
 
 	/* caches */
-	time_draw_cache(bmain, stime, obact, scene);
+	time_draw_caches(bmain, stime, obact, scene);
 
 	/* callback */
 	UI_view2d_view_ortho(v2d);

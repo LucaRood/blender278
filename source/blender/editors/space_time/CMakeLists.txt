@@ -43,4 +43,11 @@ set(SRC
 
 add_definitions(${GL_DEFINITIONS})
 
+if(WITH_OMNICACHE)
+	add_definitions(-DWITH_OMNICACHE)
+	list(APPEND INC_SYS
+		../../../../extern/omnicache
+	)
+endif()
+
 blender_add_lib(bf_editor_space_time "${SRC}" "${INC}" "${INC_SYS}")
