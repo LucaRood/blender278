@@ -3330,6 +3330,8 @@ int  BKE_ptcache_object_reset(Scene *scene, Object *ob, int mode)
 
 	for (md=ob->modifiers.first; md; md=md->next) {
 		if (md->type == eModifierType_Cloth) {
+			/* TODO (luca): This should not happen in PointCache.
+			 * OmniCache should be handled elsewhere. */
 #ifdef WITH_OMNICACHE
 			ClothModifierData *clmd = (ClothModifierData *)md;
 			OMNI_sample_clear_from(clmd->cache, OMNI_u_to_fu(CFRA));
