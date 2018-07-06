@@ -27,6 +27,9 @@ from .properties_physics_common import (
 
 
 def cloth_panel_enabled(md):
+    if md.point_cache is None:
+        return True
+
     return md.point_cache.is_baked is False
 
 
@@ -168,6 +171,10 @@ class PHYSICS_PT_cloth_cache(PhysicButtonsPanel, Panel):
     bl_label = "Cloth Cache"
     bl_options = {'DEFAULT_CLOSED'}
     COMPAT_ENGINES = {'BLENDER_RENDER'}
+
+    @classmethod
+    def poll(cls, context):
+        return context.cloth and context.cloth.point_cache
 
     def draw(self, context):
         md = context.cloth
