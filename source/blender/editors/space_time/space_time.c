@@ -190,8 +190,7 @@ static void time_draw_omnicaches(Object *ob, const float height, float offset)
 
 			count = (end - start + 1) * 4;
 
-			/* TODO (luca): This should use general cache check, instead of sample check. */
-			flags = OMNI_sample_is_current(cache, OMNI_u_to_fu(start)) ? 0 : PTCACHE_OUTDATED;
+			flags = OMNI_is_current(cache) ? 0 : PTCACHE_OUTDATED;
 
 			array = MEM_callocN(count * 2 * sizeof(float), "OmniCache timeline array");
 			fp = array;

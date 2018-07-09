@@ -447,8 +447,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		return;
 
 #ifdef WITH_OMNICACHE
-	/* TODO (luca): This should probably use a global cache validity check instad of a sample check. */
-	if (framenr == startframe && !OMNI_sample_is_current(cache, OMNI_u_to_fu(startframe))) {
+	if (framenr == startframe && !OMNI_is_current(cache)) {
 		OMNI_clear(cache);
 		do_init_cloth(ob, clmd, dm, framenr);
 		clmd->clothObject->last_frame= framenr;
