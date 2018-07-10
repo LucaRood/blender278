@@ -388,6 +388,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 {
 #ifdef WITH_OMNICACHE
 	OmniCache *cache = clmd->cache;
+	float_or_uint omni_framenr;
 #else
 	PointCache *cache = clmd->point_cache;;
 	PTCacheID pid;
@@ -397,12 +398,12 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 	int framenr, startframe, endframe;
 	int cache_result;
 
-	/* TODO (luca): Might want to store a `float_or_uint` version of the time here, for repeated use. */
-
 	clmd->scene= scene;	/* nice to pass on later :) */
 	framenr= (int)scene->r.cfra;
 
 #ifdef WITH_OMNICACHE
+	omni_framenr = OMNI_u_to_fu(framenr);
+
 	{
 		float_or_uint start, end;
 
@@ -452,7 +453,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		cloth_free_modifier(clmd);
 		do_init_cloth(ob, clmd, dm, framenr);
 		clmd->clothObject->last_frame= framenr;
-		OMNI_sample_write(cache, OMNI_u_to_fu(startframe), clmd);
+		OMNI_sample_write(cache, omni_framenr, clmd);
 		return;
 	}
 #else
@@ -472,7 +473,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 	bool can_simulate = (framenr == clmd->clothObject->last_frame + 1);
 
 	/* TODO (luca): Should respect subframe here, and interpolate between frames. */
-	cache_result = OMNI_sample_read(cache, OMNI_u_to_fu(framenr), clmd);
+	cache_result = OMNI_sample_read(cache, omni_framenr, clmd);
 
 	BKE_cloth_solver_set_positions(clmd);
 
@@ -532,10 +533,10 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 	/* do simulation */
 #ifdef WITH_OMNICACHE
 	if (!do_step_cloth(ob, clmd, dm, framenr)) {
-		OMNI_sample_mark_invalid_from(cache, OMNI_u_to_fu(framenr));
+		OMNI_sample_mark_invalid_from(cache, omni_framenr);
 	}
 	else {
-		OMNI_sample_write(cache, OMNI_u_to_fu(framenr), clmd);
+		OMNI_sample_write(cache, omni_framenr, clmd);
 	}
 #else
 	BKE_ptcache_validate(cache, framenr);
