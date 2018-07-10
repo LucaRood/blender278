@@ -1688,7 +1688,6 @@ void BKE_ptcache_ids_from_object(Main *bmain, ListBase *lb, Object *ob, Scene *s
 
 	for (md=ob->modifiers.first; md; md=md->next) {
 		if (md->type == eModifierType_Cloth) {
-			/* TODO (luca): Implement cache timeline drawing for OmniCache. */
 #ifndef WITH_OMNICACHE
 			pid= MEM_callocN(sizeof(PTCacheID), "PTCacheID");
 			BKE_ptcache_id_from_cloth(pid, ob, (ClothModifierData*)md);
