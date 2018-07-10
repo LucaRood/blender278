@@ -297,8 +297,9 @@ static void copyData(const ModifierData *md, ModifierData *target)
 		MEM_freeN(tclmd->coll_parms);
 
 #ifdef WITH_OMNICACHE
-	/* TODO (luca): Cache should actually be duplicated. */
-	tclmd->cache = OMNI_new(&cache_template, cache_block_templates);
+	OMNI_free(tclmd->cache);
+	tclmd->cache = OMNI_duplicate(clmd->cache, false);
+	OMNI_mark_invalid(tclmd->cache);
 #else
 	BKE_ptcache_free_list(&tclmd->ptcaches);
 	tclmd->point_cache = BKE_ptcache_copy_list(&tclmd->ptcaches, &clmd->ptcaches, true);
