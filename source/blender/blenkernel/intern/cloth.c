@@ -477,9 +477,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 
 	BKE_cloth_solver_set_positions(clmd);
 
-	if (cache_result == OMNI_READ_EXACT ||
-	    cache_result == OMNI_READ_INTERP ||
-	    cache_result == OMNI_READ_OUTDATED)
+	if (!(cache_result & OMNI_READ_INVALID))
 	{
 		cloth_to_object(ob, clmd, vertexCos);
 
