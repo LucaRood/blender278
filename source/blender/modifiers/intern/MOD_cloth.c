@@ -129,38 +129,38 @@ static bool cache_write_xconst(OmniData *omni_data, void *data)
 /* OmniCache templates */
 
 static const OmniCacheTemplate cache_template = {
+    .id = "blender_cloth",
     .time_type = OMNI_TIME_INT,
     .time_initial = OMNI_U_TO_FU(1),
     .time_final = OMNI_U_TO_FU(250),
     .time_step = OMNI_U_TO_FU(1),
     .flags = OMNICACHE_FLAG_FRAMED | OMNICACHE_FLAG_INTERP_SUB,
     .num_blocks = 3,
-};
-
-static const OmniBlockTemplateArray cache_block_templates = {
-    {
-        .name = "x",
-        .data_type = OMNI_DATA_FLOAT3,
-        .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-        .count = cache_count,
-        .read = cache_read_x,
-        .write = cache_write_x,
-    },
-    {
-        .name = "v",
-        .data_type = OMNI_DATA_FLOAT3,
-        .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-        .count = cache_count,
-        .read = cache_read_v,
-        .write = cache_write_v,
-    },
-    {
-        .name = "xconst",
-        .data_type = OMNI_DATA_FLOAT3,
-        .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-        .count = cache_count,
-        .read = cache_read_xconst,
-        .write = cache_write_xconst,
+    .blocks = {
+        {
+            .id = "x",
+            .data_type = OMNI_DATA_FLOAT3,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .count = cache_count,
+            .read = cache_read_x,
+            .write = cache_write_x,
+        },
+        {
+            .id = "v",
+            .data_type = OMNI_DATA_FLOAT3,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .count = cache_count,
+            .read = cache_read_v,
+            .write = cache_write_v,
+        },
+        {
+            .id = "xconst",
+            .data_type = OMNI_DATA_FLOAT3,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .count = cache_count,
+            .read = cache_read_xconst,
+            .write = cache_write_xconst,
+        },
     },
 };
 #endif
@@ -173,7 +173,7 @@ static void initData(ModifierData *md)
 	clmd->coll_parms = MEM_callocN(sizeof(ClothCollSettings), "cloth coll parms");
 
 #ifdef WITH_OMNICACHE
-	clmd->cache = OMNI_new(&cache_template, cache_block_templates);
+	clmd->cache = OMNI_new(&cache_template, "x;v;xconst;");
 #else
 	clmd->point_cache = BKE_ptcache_add(&clmd->ptcaches);
 #endif
