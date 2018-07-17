@@ -218,6 +218,8 @@ static void time_draw_omnicaches(Object *ob, const float height, float offset)
 			time_draw_cache(array, (fp - array) / 2, start, end,
 			                height, offset, PTCACHE_TYPE_CLOTH, flags);
 
+			MEM_freeN(array);
+
 			offset += height;
 		}
 	}
