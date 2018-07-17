@@ -3333,11 +3333,18 @@ int  BKE_ptcache_object_reset(Scene *scene, Object *ob, int mode)
 			 * OmniCache should be handled elsewhere. */
 #ifdef WITH_OMNICACHE
 			ClothModifierData *clmd = (ClothModifierData *)md;
-			OMNI_sample_clear_from(clmd->cache, OMNI_u_to_fu(CFRA + 1));
-			OMNI_mark_outdated(clmd->cache);
+			if (clmd->cache) {
+				OMNI_sample_clear_from(clmd->cache, OMNI_u_to_fu(CFRA + 1));
+				OMNI_mark_outdated(clmd->cache);
 
-			if (clmd->clothObject) {
-				clmd->clothObject->last_frame = MIN2(clmd->clothObject->last_frame, CFRA);
+				if (clmd->clothObject) {
+					clmd->clothObject->last_frame = MIN2(clmd->clothObject->last_frame, CFRA);
+				}
+			}
+			else {
+				if (clmd->clothObject) {
+					clmd->clothObject->last_frame = MINFRAME - 1;
+				}
 			}
 
 			reset |= 1;

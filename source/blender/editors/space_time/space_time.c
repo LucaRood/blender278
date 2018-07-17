@@ -180,6 +180,10 @@ static void time_draw_omnicaches(Object *ob, const float height, float offset)
 			int flags;
 			float *array, *fp;
 
+			if (!cache) {
+				continue;
+			}
+
 			{
 				float_or_uint s, e;
 				OMNI_get_range(cache, &s, &e, NULL);

@@ -91,6 +91,10 @@ if(WITH_ALEMBIC)
 	add_definitions(-DWITH_ALEMBIC)
 endif()
 
+if(WITH_OMNICACHE)
+	add_definitions(-DWITH_OMNICACHE)
+endif()
+
 blender_add_lib(bf_blenloader "${SRC}" "${INC}" "${INC_SYS}")
 
 # needed so writefile.c can use dna_type_offsets.h

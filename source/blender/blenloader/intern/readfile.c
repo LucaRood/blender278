@@ -5154,7 +5154,12 @@ static void direct_link_modifiers(FileData *fd, ListBase *lb)
 			clmd->sim_parms= newdataadr(fd, clmd->sim_parms);
 			clmd->coll_parms= newdataadr(fd, clmd->coll_parms);
 
+#ifdef WITH_OMNICACHE
+			clmd->cache = NULL;
+			clmd->cache_serial = newdataadr(fd, clmd->cache_serial);
+#else
 			direct_link_pointcache_list(fd, &clmd->ptcaches, &clmd->point_cache, 0);
+#endif
 
 			if (clmd->sim_parms) {
 				if (clmd->sim_parms->presets > 10)

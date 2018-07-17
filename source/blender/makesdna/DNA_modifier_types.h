@@ -616,6 +616,11 @@ typedef struct ClothModifierData {
 	struct ClothSolverResult *solver_result;
 
 	struct OmniCache *cache;
+
+	/* Used for storing cache settings in DNA. */
+	struct OmniSerial *cache_serial;
+	unsigned int cache_serial_size;
+	int pad;
 } ClothModifierData;
 
 typedef struct CollisionModifierData {

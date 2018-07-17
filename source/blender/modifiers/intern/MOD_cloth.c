@@ -163,6 +163,14 @@ static const OmniCacheTemplate cache_template = {
         },
     },
 };
+
+/* OmniCache helpers */
+static void omnicache_serialize(ClothModifierData *clmd)
+{
+	clmd->cache_serial_size = OMNI_serial_get_size(clmd->cache, false);
+	clmd->cache_serial = MEM_mallocN(clmd->cache_serial_size, "OmniCache serial");
+	OMNI_serialize_to_buffer(clmd->cache_serial, clmd->cache, false);
+}
 #endif
 
 static void initData(ModifierData *md)
@@ -174,6 +182,8 @@ static void initData(ModifierData *md)
 
 #ifdef WITH_OMNICACHE
 	clmd->cache = OMNI_new(&cache_template, "x;v;xconst;");
+
+	omnicache_serialize(clmd);
 #else
 	clmd->point_cache = BKE_ptcache_add(&clmd->ptcaches);
 #endif
@@ -225,6 +235,11 @@ static void deformVerts(
 	}
 
 	CDDM_apply_vert_coords(dm, vertexCos);
+
+	if (!clmd->cache) {
+		clmd->cache = OMNI_deserialize(clmd->cache_serial, &cache_template);
+		OMNI_mark_outdated(clmd->cache);
+	}
 
 	clothModifier_do(clmd, md->scene, ob, dm, vertexCos);
 
@@ -298,7 +313,11 @@ static void copyData(const ModifierData *md, ModifierData *target)
 
 #ifdef WITH_OMNICACHE
 	OMNI_free(tclmd->cache);
+	MEM_freeN(tclmd->cache_serial);
 	tclmd->cache = OMNI_duplicate(clmd->cache, false);
+
+	omnicache_serialize(clmd);
+
 	OMNI_mark_invalid(tclmd->cache);
 #else
 	BKE_ptcache_free_list(&tclmd->ptcaches);
@@ -338,8 +357,16 @@ static void freeData(ModifierData *md)
 			MEM_freeN(clmd->coll_parms);
 
 #ifdef WITH_OMNICACHE
-		OMNI_free(clmd->cache);
-		clmd->cache = NULL;
+		if (clmd->cache) {
+			OMNI_free(clmd->cache);
+			clmd->cache = NULL;
+		}
+
+		if (clmd->cache_serial) {
+			MEM_freeN(clmd->cache_serial);
+			clmd->cache_serial = NULL;
+			clmd->cache_serial_size = 0;
+		}
 #else
 		BKE_ptcache_free_list(&clmd->ptcaches);
 		clmd->point_cache = NULL;
