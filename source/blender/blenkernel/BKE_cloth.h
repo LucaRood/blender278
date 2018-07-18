@@ -184,6 +184,8 @@ typedef enum {
 	CLOTH_SIMSETTINGS_FLAG_NO_SPRING_COMPRESS = (1 << 13), /* don't allow spring compression */
 	CLOTH_SIMSETTINGS_FLAG_SEW = (1 << 14), /* pull ends of loose edges together */
 	CLOTH_SIMSETTINGS_FLAG_DYNAMIC_BASEMESH = (1 << 15), /* make simulation respect deformations in the base object */
+	CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY = (1 << 16), /* enable structural plasticity */
+	CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY = (1 << 17), /* enable bending plasticity */
 } CLOTH_SIMSETTINGS_FLAGS;
 
 /* COLLISION FLAGS */

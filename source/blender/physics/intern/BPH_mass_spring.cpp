@@ -605,13 +605,13 @@ static void cloth_calc_force(ClothModifierData *clmd, float UNUSED(frame), ListB
 	 * Which we can now set equal to 'a' and easily solve for 'x':
 	 * x = 1 - (1-a)^(1/n) */
 
-	struct_plast = clmd->sim_parms->struct_plasticity;
+	struct_plast = clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY ? clmd->sim_parms->struct_plasticity : 0.0f;
 
 	if (!(struct_plast < FLT_EPSILON || 1.0f - struct_plast < FLT_EPSILON)) {
 		struct_plast = 1.0f - powf(1.0f - struct_plast, clmd->sim_parms->dt);
 	}
 
-	bend_plast = clmd->sim_parms->bend_plasticity;
+	bend_plast = clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY ? clmd->sim_parms->bend_plasticity : 0.0f;
 
 	if (!(bend_plast < FLT_EPSILON || 1.0f - bend_plast < FLT_EPSILON)) {
 		bend_plast = 1.0f - powf(1.0f - bend_plast, clmd->sim_parms->dt);

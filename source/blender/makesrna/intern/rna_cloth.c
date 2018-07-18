@@ -787,6 +787,12 @@ static void rna_def_cloth_sim_settings(BlenderRNA *brna)
 	RNA_def_property_ui_text(prop, "Shear Stiffness Maximum", "Maximum shear scaling value");
 	RNA_def_property_update(prop, 0, "rna_cloth_update");
 
+	prop = RNA_def_property(srna, "use_structural_plasticity", PROP_BOOLEAN, PROP_NONE);
+	RNA_def_property_boolean_sdna(prop, NULL, "flags", CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY);
+	RNA_def_property_ui_text(prop, "Structural Plasticity", "Enable structural plasticity");
+	RNA_def_property_update(prop, 0, "rna_cloth_update");
+	RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
+
 	prop = RNA_def_property(srna, "structural_plasticity", PROP_FLOAT, PROP_NONE);
 	RNA_def_property_float_sdna(prop, NULL, "struct_plasticity");
 	RNA_def_property_range(prop, 0.0f, 1.0f);
@@ -799,6 +805,12 @@ static void rna_def_cloth_sim_settings(BlenderRNA *brna)
 	RNA_def_property_ui_range(prop, 1.0f, 2.0f, 10, 3);
 	RNA_def_property_ui_text(prop, "Structural Yield Factor", "How much cloth has to deform in-plane before plasticity takes effect (factor of rest state)");
 	RNA_def_property_update(prop, 0, "rna_cloth_update");
+
+	prop = RNA_def_property(srna, "use_bending_plasticity", PROP_BOOLEAN, PROP_NONE);
+	RNA_def_property_boolean_sdna(prop, NULL, "flags", CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY);
+	RNA_def_property_ui_text(prop, "Bending Plasticity", "Enable bending plasticity");
+	RNA_def_property_update(prop, 0, "rna_cloth_update");
+	RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
 
 	prop = RNA_def_property(srna, "bending_plasticity", PROP_FLOAT, PROP_NONE);
 	RNA_def_property_float_sdna(prop, NULL, "bend_plasticity");

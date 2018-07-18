@@ -138,13 +138,13 @@ class PHYSICS_PT_cloth(PhysicButtonsPanel, Panel):
         row.label("Threshold:")
 
         split = col.split(percentage=0.3)
-        split.label("Structural:")
+        split.prop(cloth, "use_structural_plasticity", text="Structural")
         row = split.row(align=True)
         row.prop(cloth, "structural_plasticity", text="")
         row.prop(cloth, "structural_yield_factor", text="")
 
         split = col.split(percentage=0.3)
-        split.label("Bending:")
+        split.prop(cloth, "use_bending_plasticity", text="Bending")
         row = split.row(align=True)
         row.prop(cloth, "bending_plasticity", text="")
         row.prop(cloth, "bending_yield_factor", text="")
