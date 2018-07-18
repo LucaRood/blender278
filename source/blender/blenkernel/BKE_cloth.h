@@ -262,6 +262,7 @@ bool is_basemesh_valid(struct Object *ob, struct Object *basemesh, struct ClothM
 
 #ifdef WITH_OMNICACHE
 void cloth_serialize_omnicache(struct ClothModifierData *clmd);
+void cloth_update_omnicache_blocks(struct ClothModifierData *clmd);
 #endif
 
 ////////////////////////////////////////////////

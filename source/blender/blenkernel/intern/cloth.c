@@ -85,14 +85,21 @@ typedef float float3[3];
 
 /* OmniCache callbacks */
 
-static uint cache_count(void *data)
+static uint cache_count_vert(void *data)
 {
 	ClothModifierData *clmd = (ClothModifierData *)data;
 
 	return clmd->clothObject->mvert_num;
 }
 
-#define CACHE_RW(target, source) {                       \
+static uint cache_count_spring(void *data)
+{
+	ClothModifierData *clmd = (ClothModifierData *)data;
+
+	return clmd->clothObject->numsprings;
+}
+
+#define CACHE_RW_VERT(target, source) {                  \
 	ClothModifierData *clmd = (ClothModifierData *)data; \
 	Cloth *cloth = clmd->clothObject;                    \
 	float3 *array = (float3 *)omni_data->data;           \
@@ -101,43 +108,81 @@ static uint cache_count(void *data)
 	}                                                    \
 	for (uint i = 0; i < cloth->mvert_num; i++) {        \
 		ClothVertex *vert = &cloth->verts[i];            \
-		float3 *a = &array[i];                           \
 		memcpy(target, source, sizeof(float3));          \
+		array++;                                         \
 	}                                                    \
 	return true;                                         \
 }
 
-#define CACHE_READ(prop) CACHE_RW(vert->prop, a)
-#define CACHE_WRITE(prop) CACHE_RW(a, vert->prop)
+#define CACHE_READ_VERT(prop) CACHE_RW_VERT(vert->prop, array)
+#define CACHE_WRITE_VERT(prop) CACHE_RW_VERT(array, vert->prop)
 
 static bool cache_read_x(OmniData *omni_data, void *data)
 {
-	CACHE_READ(x);
+	CACHE_READ_VERT(x);
 }
 
 static bool cache_read_v(OmniData *omni_data, void *data)
 {
-	CACHE_READ(v);
+	CACHE_READ_VERT(v);
 }
 
 static bool cache_read_xconst(OmniData *omni_data, void *data)
 {
-	CACHE_READ(xconst);
+	CACHE_READ_VERT(xconst);
 }
 
 static bool cache_write_x(OmniData *omni_data, void *data)
 {
-	CACHE_WRITE(x);
+	CACHE_WRITE_VERT(x);
 }
 
 static bool cache_write_v(OmniData *omni_data, void *data)
 {
-	CACHE_WRITE(v);
+	CACHE_WRITE_VERT(v);
 }
 
 static bool cache_write_xconst(OmniData *omni_data, void *data)
 {
-	CACHE_WRITE(xconst);
+	CACHE_WRITE_VERT(xconst);
+}
+
+#define CACHE_RW_SPRING(target, source) {                                    \
+	ClothModifierData *clmd = (ClothModifierData *)data;                     \
+	Cloth *cloth = clmd->clothObject;                                        \
+	float *array = (float *)omni_data->data;                                 \
+	if (omni_data->dcount != cloth->numsprings) {                            \
+		return false;                                                        \
+	}                                                                        \
+	for (LinkNode *search = cloth->springs; search; search = search->next) { \
+		ClothSpring *spring = search->link;                                  \
+		target = source;                                                     \
+		array++;                                                             \
+	}                                                                        \
+	return true;                                                             \
+}
+
+#define CACHE_READ_SPRING(prop) CACHE_RW_SPRING(spring->prop, *array)
+#define CACHE_WRITE_SPRING(prop) CACHE_RW_SPRING(*array, spring->prop)
+
+static bool cache_read_lenfact(OmniData *omni_data, void *data)
+{
+	CACHE_READ_SPRING(lenfact);
+}
+
+static bool cache_read_angoffset(OmniData *omni_data, void *data)
+{
+	CACHE_READ_SPRING(angoffset);
+}
+
+static bool cache_write_lenfact(OmniData *omni_data, void *data)
+{
+	CACHE_WRITE_SPRING(lenfact);
+}
+
+static bool cache_write_angoffset(OmniData *omni_data, void *data)
+{
+	CACHE_WRITE_SPRING(angoffset);
 }
 
 /* OmniCache templates */
@@ -155,7 +200,7 @@ static const OmniCacheTemplate cache_template = {
             .id = "x",
             .data_type = OMNI_DATA_FLOAT3,
             .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-            .count = cache_count,
+            .count = cache_count_vert,
             .read = cache_read_x,
             .write = cache_write_x,
         },
@@ -163,7 +208,7 @@ static const OmniCacheTemplate cache_template = {
             .id = "v",
             .data_type = OMNI_DATA_FLOAT3,
             .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-            .count = cache_count,
+            .count = cache_count_vert,
             .read = cache_read_v,
             .write = cache_write_v,
         },
@@ -171,9 +216,25 @@ static const OmniCacheTemplate cache_template = {
             .id = "xconst",
             .data_type = OMNI_DATA_FLOAT3,
             .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-            .count = cache_count,
+            .count = cache_count_vert,
             .read = cache_read_xconst,
             .write = cache_write_xconst,
+        },
+        {
+            .id = "lenfact",
+            .data_type = OMNI_DATA_FLOAT,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .count = cache_count_spring,
+            .read = cache_read_lenfact,
+            .write = cache_write_lenfact,
+        },
+        {
+            .id = "angoffset",
+            .data_type = OMNI_DATA_FLOAT,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .count = cache_count_spring,
+            .read = cache_read_angoffset,
+            .write = cache_write_angoffset,
         },
     },
 };
@@ -823,6 +884,23 @@ void cloth_serialize_omnicache(ClothModifierData *clmd)
 	clmd->cache_serial_size = OMNI_serial_get_size(clmd->cache, false);
 	clmd->cache_serial = MEM_mallocN(clmd->cache_serial_size, "OmniCache serial");
 	OMNI_serialize_to_buffer(clmd->cache_serial, clmd->cache, false);
+}
+
+void cloth_update_omnicache_blocks(ClothModifierData *clmd) {
+	if ((clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY) &&
+	    (clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY))
+	{
+		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;lenfact;angoffset;");
+	}
+	else if ((clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY)) {
+		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;lenfact;");
+	}
+	else if ((clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY)) {
+		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;angoffset;");
+	}
+	else {
+		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;");
+	}
 }
 #endif
 

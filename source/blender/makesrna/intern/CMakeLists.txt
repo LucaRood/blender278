@@ -324,6 +324,10 @@ if(WITH_INPUT_NDOF)
 	add_definitions(-DWITH_INPUT_NDOF)
 endif()
 
+if(WITH_OMNICACHE)
+	add_definitions(-DWITH_OMNICACHE)
+endif()
+
 # Build makesrna executable
 blender_include_dirs(
 	.

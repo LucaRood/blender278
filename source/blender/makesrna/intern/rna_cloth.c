@@ -65,6 +65,19 @@ static void rna_cloth_dependency_update(Main *bmain, Scene *scene, PointerRNA *p
 	rna_cloth_update(bmain, scene, ptr);
 }
 
+static void rna_cloth_cache_blocks_update(Main *bmain, Scene *scene, PointerRNA *ptr)
+{
+#ifdef WITH_OMNICACHE
+	Object *ob = (Object *)ptr->id.data;
+	ClothModifierData *clmd = (ClothModifierData *)modifiers_findByType(ob, eModifierType_Cloth);
+
+	if (clmd) {
+		cloth_update_omnicache_blocks(clmd);
+	}
+#endif
+	rna_cloth_update(bmain, scene, ptr);
+}
+
 static void rna_ClothSettings_bending_set(struct PointerRNA *ptr, float value)
 {
 	ClothSimSettings *settings = (ClothSimSettings *)ptr->data;
@@ -790,7 +803,7 @@ static void rna_def_cloth_sim_settings(BlenderRNA *brna)
 	prop = RNA_def_property(srna, "use_structural_plasticity", PROP_BOOLEAN, PROP_NONE);
 	RNA_def_property_boolean_sdna(prop, NULL, "flags", CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY);
 	RNA_def_property_ui_text(prop, "Structural Plasticity", "Enable structural plasticity");
-	RNA_def_property_update(prop, 0, "rna_cloth_update");
+	RNA_def_property_update(prop, 0, "rna_cloth_cache_blocks_update");
 	RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
 
 	prop = RNA_def_property(srna, "structural_plasticity", PROP_FLOAT, PROP_NONE);
@@ -809,7 +822,7 @@ static void rna_def_cloth_sim_settings(BlenderRNA *brna)
 	prop = RNA_def_property(srna, "use_bending_plasticity", PROP_BOOLEAN, PROP_NONE);
 	RNA_def_property_boolean_sdna(prop, NULL, "flags", CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY);
 	RNA_def_property_ui_text(prop, "Bending Plasticity", "Enable bending plasticity");
-	RNA_def_property_update(prop, 0, "rna_cloth_update");
+	RNA_def_property_update(prop, 0, "rna_cloth_cache_blocks_update");
 	RNA_def_property_clear_flag(prop, PROP_ANIMATABLE);
 
 	prop = RNA_def_property(srna, "bending_plasticity", PROP_FLOAT, PROP_NONE);
