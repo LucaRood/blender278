@@ -65,114 +65,6 @@
 #  include "omnicache.h"
 #endif
 
-#ifdef WITH_OMNICACHE
-/* Just for convenience. */
-typedef float float3[3];
-
-/* OmniCache callbacks */
-
-static uint cache_count(void *data)
-{
-	ClothModifierData *clmd = (ClothModifierData *)data;
-
-	return clmd->clothObject->mvert_num;
-}
-
-#define CACHE_RW(target, source) {                       \
-	ClothModifierData *clmd = (ClothModifierData *)data; \
-	Cloth *cloth = clmd->clothObject;                    \
-	float3 *array = (float3 *)omni_data->data;           \
-	if (omni_data->dcount != cloth->mvert_num) {         \
-		return false;                                    \
-	}                                                    \
-	for (uint i = 0; i < cloth->mvert_num; i++) {        \
-		ClothVertex *vert = &cloth->verts[i];            \
-		float3 *a = &array[i];                           \
-		memcpy(target, source, sizeof(float3));          \
-	}                                                    \
-	return true;                                         \
-}
-
-#define CACHE_READ(prop) CACHE_RW(vert->prop, a)
-#define CACHE_WRITE(prop) CACHE_RW(a, vert->prop)
-
-static bool cache_read_x(OmniData *omni_data, void *data)
-{
-	CACHE_READ(x);
-}
-
-static bool cache_read_v(OmniData *omni_data, void *data)
-{
-	CACHE_READ(v);
-}
-
-static bool cache_read_xconst(OmniData *omni_data, void *data)
-{
-	CACHE_READ(xconst);
-}
-
-static bool cache_write_x(OmniData *omni_data, void *data)
-{
-	CACHE_WRITE(x);
-}
-
-static bool cache_write_v(OmniData *omni_data, void *data)
-{
-	CACHE_WRITE(v);
-}
-
-static bool cache_write_xconst(OmniData *omni_data, void *data)
-{
-	CACHE_WRITE(xconst);
-}
-
-/* OmniCache templates */
-
-static const OmniCacheTemplate cache_template = {
-    .id = "blender_cloth",
-    .time_type = OMNI_TIME_INT,
-    .time_initial = OMNI_U_TO_FU(1),
-    .time_final = OMNI_U_TO_FU(250),
-    .time_step = OMNI_U_TO_FU(1),
-    .flags = OMNICACHE_FLAG_FRAMED | OMNICACHE_FLAG_INTERP_SUB,
-    .num_blocks = 3,
-    .blocks = {
-        {
-            .id = "x",
-            .data_type = OMNI_DATA_FLOAT3,
-            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-            .count = cache_count,
-            .read = cache_read_x,
-            .write = cache_write_x,
-        },
-        {
-            .id = "v",
-            .data_type = OMNI_DATA_FLOAT3,
-            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-            .count = cache_count,
-            .read = cache_read_v,
-            .write = cache_write_v,
-        },
-        {
-            .id = "xconst",
-            .data_type = OMNI_DATA_FLOAT3,
-            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
-            .count = cache_count,
-            .read = cache_read_xconst,
-            .write = cache_write_xconst,
-        },
-    },
-};
-
-/* OmniCache helpers */
-static void omnicache_serialize(ClothModifierData *clmd)
-{
-	clmd->cache_serial_size = OMNI_serial_get_size(clmd->cache, false);
-	clmd->cache_serial = MEM_mallocN(clmd->cache_serial_size, "OmniCache serial");
-	OMNI_serialize_to_buffer(clmd->cache_serial, clmd->cache, false);
-}
-#endif
-
 static void initData(ModifierData *md)
 {
 	ClothModifierData *clmd = (ClothModifierData *) md;
@@ -180,16 +72,12 @@ static void initData(ModifierData *md)
 	clmd->sim_parms = MEM_callocN(sizeof(ClothSimSettings), "cloth sim parms");
 	clmd->coll_parms = MEM_callocN(sizeof(ClothCollSettings), "cloth coll parms");
 
-#ifdef WITH_OMNICACHE
-	clmd->cache = OMNI_new(&cache_template, "x;v;xconst;");
-
-	omnicache_serialize(clmd);
-#else
+#ifndef WITH_OMNICACHE
 	clmd->point_cache = BKE_ptcache_add(&clmd->ptcaches);
 #endif
 
 	/* check for alloc failing */
-	if (!clmd->sim_parms || !clmd->coll_parms || (!clmd->point_cache && !clmd->cache))
+	if (!clmd->sim_parms || !clmd->coll_parms)
 		return;
 
 	cloth_init(clmd);
@@ -235,11 +123,6 @@ static void deformVerts(
 	}
 
 	CDDM_apply_vert_coords(dm, vertexCos);
-
-	if (!clmd->cache) {
-		clmd->cache = OMNI_deserialize(clmd->cache_serial, &cache_template);
-		OMNI_mark_outdated(clmd->cache);
-	}
 
 	clothModifier_do(clmd, md->scene, ob, dm, vertexCos);
 
@@ -316,7 +199,7 @@ static void copyData(const ModifierData *md, ModifierData *target)
 	MEM_freeN(tclmd->cache_serial);
 	tclmd->cache = OMNI_duplicate(clmd->cache, false);
 
-	omnicache_serialize(clmd);
+	cloth_serialize_omnicache(clmd);
 
 	OMNI_mark_invalid(tclmd->cache);
 #else
