@@ -461,7 +461,7 @@ static void rna_ClothSettings_besemesh_target_set(PointerRNA *ptr, PointerRNA va
 	}
 }
 
-static int rna_ClothSettings_besemesh_target_poll(PointerRNA *ptr, PointerRNA value)
+static bool rna_ClothSettings_besemesh_target_poll(PointerRNA *ptr, PointerRNA value)
 {
 	return is_basemesh_valid((Object *)ptr->id.data, (Object *)value.data, NULL);
 }
