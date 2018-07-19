@@ -199,7 +199,7 @@ static void copyData(const ModifierData *md, ModifierData *target)
 	MEM_freeN(tclmd->cache_serial);
 	tclmd->cache = OMNI_duplicate(clmd->cache, false);
 
-	cloth_serialize_omnicache(clmd);
+	cloth_serialize_omnicache(tclmd);
 
 	OMNI_mark_invalid(tclmd->cache);
 #else
