@@ -285,10 +285,10 @@ void cloth_init(ClothModifierData *clmd )
 	clmd->sim_parms->time_scale = 1.0f; /* multiplies cloth speed */
 	clmd->sim_parms->reset = 0;
 	clmd->sim_parms->vel_damping = 1.0f; /* 1.0 = no damping, 0.0 = fully dampened */
-	clmd->sim_parms->struct_plasticity = 0.0f;
-	clmd->sim_parms->struct_yield_fact = 1.0f;
-	clmd->sim_parms->bend_plasticity = 0.0f;
-	clmd->sim_parms->bend_yield_fact = 0.0f;
+	clmd->sim_parms->struct_plasticity = 1.0f;
+	clmd->sim_parms->struct_yield_fact = 1.5f;
+	clmd->sim_parms->bend_plasticity = 1.0f;
+	clmd->sim_parms->bend_yield_fact = DEG2RAD(10.0);
 
 	/* Adaptive subframes */
 	clmd->sim_parms->max_subframes = 50;
