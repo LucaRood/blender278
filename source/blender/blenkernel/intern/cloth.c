@@ -194,7 +194,7 @@ static const OmniCacheTemplate cache_template = {
     .time_final = OMNI_U_TO_FU(250),
     .time_step = OMNI_U_TO_FU(1),
     .flags = OMNICACHE_FLAG_FRAMED | OMNICACHE_FLAG_INTERP_SUB,
-    .num_blocks = 3,
+    .num_blocks = 5,
     .blocks = {
         {
             .id = "x",
