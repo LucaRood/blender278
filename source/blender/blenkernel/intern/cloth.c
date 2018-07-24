@@ -484,7 +484,6 @@ static int do_init_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *resul
 	
 		BKE_cloth_solver_set_positions(clmd);
 
-		clmd->clothObject->last_frame= MINFRAME-1;
 		clmd->clothObject->adapt_fact = 1.0f;
 		clmd->sim_parms->dt = 1.0f / clmd->sim_parms->stepsPerFrame;
 	}
@@ -623,7 +622,6 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		OMNI_clear(cache);
 		cloth_free_modifier(clmd);
 		do_init_cloth(ob, clmd, dm, framenr);
-		clmd->clothObject->last_frame= framenr;
 		OMNI_sample_write(cache, omni_framenr, clmd);
 		return;
 	}
@@ -641,7 +639,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 
 	/* try to read from cache */
 #ifdef WITH_OMNICACHE
-	bool can_simulate = (framenr == clmd->clothObject->last_frame + 1);
+	bool can_simulate = OMNI_sample_is_valid(cache, OMNI_u_to_fu(framenr - 1));
 
 	/* TODO (luca): Should respect subframe here, and interpolate between frames. */
 	cache_result = OMNI_sample_read(cache, omni_framenr, clmd);
@@ -653,8 +651,6 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		cloth_to_object(ob, clmd, vertexCos);
 
 		/* TODO (luca): Might want to write interpolated result to cache... Or not. */
-
-		clmd->clothObject->last_frame = framenr;
 
 		return;
 	}
@@ -718,7 +714,6 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 #endif
 
 	cloth_to_object (ob, clmd, vertexCos);
-	clmd->clothObject->last_frame= framenr;
 }
 
 /* frees all */
