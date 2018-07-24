@@ -210,6 +210,14 @@ typedef enum {
 	CLOTH_SPRING_FLAG_NEEDED = ( 1 << 2 ), // springs has values to be applied
 } CLOTH_SPRINGS_FLAGS;
 
+typedef enum ClothOmniCacheBlock {
+	CLOTH_OMNICACHE_BLOCK_X			= 0,
+	CLOTH_OMNICACHE_BLOCK_V			= 1,
+	CLOTH_OMNICACHE_BLOCK_XCONST	= 2,
+	CLOTH_OMNICACHE_BLOCK_LENFACT	= 3,
+	CLOTH_OMNICACHE_BLOCK_ANGOFFSET	= 4,
+} ClothOmniCacheBlock;
+
 
 /////////////////////////////////////////////////
 // collision.c
@@ -259,11 +267,6 @@ void cloth_clear_cache (struct Object *ob, struct ClothModifierData *clmd, float
 void cloth_parallel_transport_hair_frame(float mat[3][3], const float dir_old[3], const float dir_new[3]);
 
 bool is_basemesh_valid(struct Object *ob, struct Object *basemesh, struct ClothModifierData *clmd);
-
-#ifdef WITH_OMNICACHE
-void cloth_serialize_omnicache(struct ClothModifierData *clmd);
-void cloth_update_omnicache_blocks(struct ClothModifierData *clmd);
-#endif
 
 ////////////////////////////////////////////////
 

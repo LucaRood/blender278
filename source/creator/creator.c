@@ -65,6 +65,7 @@
 #include "BKE_material.h"
 #include "BKE_modifier.h"
 #include "BKE_node.h"
+#include "BKE_omnicache.h"
 #include "BKE_sound.h"
 #include "BKE_image.h"
 #include "BKE_particle.h"
@@ -488,6 +489,10 @@ int main(
 				WM_recover_last_session(C, NULL);
 	}
 
+#endif
+
+#ifdef WITH_OMNICACHE
+	BKE_omnicache_templatesInit();
 #endif
 
 	/* Explicitly free data allocated for argument parsing:

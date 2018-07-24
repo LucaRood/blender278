@@ -100,6 +100,10 @@ if(WITH_FREESTYLE)
 	blender_include_dirs(../blender/freestyle)
 endif()
 
+if(WITH_OMNICACHE)
+	add_definitions(-DWITH_OMNICACHE)
+endif()
+
 # Setup the exe sources and buildinfo
 set(SRC
 	creator.c

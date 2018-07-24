@@ -152,6 +152,7 @@ set(SRC
 	intern/object_dupli.c
 	intern/object_update.c
 	intern/ocean.c
+	intern/omnicache.c
 	intern/outliner_treehash.c
 	intern/packedFile.c
 	intern/paint.c
@@ -275,6 +276,7 @@ set(SRC
 	BKE_object.h
 	BKE_object_deform.h
 	BKE_ocean.h
+	BKE_omnicache.h
 	BKE_outliner_treehash.h
 	BKE_packedFile.h
 	BKE_paint.h

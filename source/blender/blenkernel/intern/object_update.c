@@ -55,7 +55,9 @@
 #include "BKE_lattice.h"
 #include "BKE_main.h"
 #include "BKE_material.h"
+#include "BKE_modifier.h"
 #include "BKE_object.h"
+#include "BKE_omnicache.h"
 #include "BKE_particle.h"
 #include "BKE_pointcache.h"
 #include "BKE_scene.h"
@@ -341,7 +343,16 @@ void BKE_object_eval_cloth(EvaluationContext *UNUSED(eval_ctx),
                            Object *object)
 {
 	DEG_debug_print_eval(__func__, object->id.name, object);
+
+#ifdef WITH_OMNICACHE
+	{
+		ClothModifierData *clmd = (ClothModifierData *)modifiers_findByType(object, eModifierType_Cloth);
+
+		BKE_omnicache_reset(clmd->cache, scene);
+	}
+#else
 	BKE_ptcache_object_reset(scene, object, PTCACHE_RESET_DEPSGRAPH);
+#endif
 }
 
 void BKE_object_eval_transform_all(EvaluationContext *eval_ctx,

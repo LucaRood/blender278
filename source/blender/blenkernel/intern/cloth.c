@@ -48,16 +48,15 @@
 #include "BKE_effect.h"
 #include "BKE_global.h"
 #include "BKE_modifier.h"
+#include "BKE_omnicache.h"
 
-#ifndef WITH_OMNICACHE
+#ifdef WITH_OMNICACHE
+#  include "omnicache.h"
+#else
 #  include "BKE_pointcache.h"
 #endif
 
 #include "BPH_mass_spring.h"
-
-#ifdef WITH_OMNICACHE
-#  include "omnicache.h"
-#endif
 
 // #include "PIL_time.h"  /* timing for debug prints */
 
@@ -187,19 +186,19 @@ static bool cache_write_angoffset(OmniData *omni_data, void *data)
 
 /* OmniCache templates */
 
-static const OmniCacheTemplate cache_template = {
+/* Important!!! Remember to update `ClothOmniCacheBlocks` in BKE_cloth.h
+ * when changing blocks here. Changing blocks will also require a subversion bump. */
+OmniCacheTemplate bOmnicacheTemplate_Cloth = {
     .id = "blender_cloth",
-    .time_type = OMNI_TIME_INT,
-    .time_initial = OMNI_U_TO_FU(1),
-    .time_final = OMNI_U_TO_FU(250),
-    .time_step = OMNI_U_TO_FU(1),
-    .flags = OMNICACHE_FLAG_FRAMED | OMNICACHE_FLAG_INTERP_SUB,
+    .flags = OMNICACHE_FLAG_INTERP_SUB,
     .num_blocks = 5,
     .blocks = {
         {
             .id = "x",
             .data_type = OMNI_DATA_FLOAT3,
-            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS |
+                     OMNI_BLOCK_FLAG_CONST_COUNT |
+                     OMNI_BLOCK_FLAG_MANDATORY,
             .count = cache_count_vert,
             .read = cache_read_x,
             .write = cache_write_x,
@@ -207,7 +206,9 @@ static const OmniCacheTemplate cache_template = {
         {
             .id = "v",
             .data_type = OMNI_DATA_FLOAT3,
-            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS |
+                     OMNI_BLOCK_FLAG_CONST_COUNT |
+                     OMNI_BLOCK_FLAG_MANDATORY,
             .count = cache_count_vert,
             .read = cache_read_v,
             .write = cache_write_v,
@@ -215,7 +216,9 @@ static const OmniCacheTemplate cache_template = {
         {
             .id = "xconst",
             .data_type = OMNI_DATA_FLOAT3,
-            .flags = OMNI_BLOCK_FLAG_CONTINUOUS | OMNI_BLOCK_FLAG_CONST_COUNT,
+            .flags = OMNI_BLOCK_FLAG_CONTINUOUS |
+                     OMNI_BLOCK_FLAG_CONST_COUNT |
+                     OMNI_BLOCK_FLAG_MANDATORY,
             .count = cache_count_vert,
             .read = cache_read_xconst,
             .write = cache_write_xconst,
@@ -327,11 +330,7 @@ void cloth_init(ClothModifierData *clmd )
 	if (!clmd->sim_parms->effector_weights)
 		clmd->sim_parms->effector_weights = BKE_add_effector_weights(NULL);
 
-#ifdef WITH_OMNICACHE
-	clmd->cache = OMNI_new(&cache_template, "x;v;xconst;");
-
-	cloth_serialize_omnicache(clmd);
-#else
+#ifndef WITH_OMNICACHE
 	if (clmd->point_cache)
 		clmd->point_cache->step = 1;
 #endif
@@ -455,7 +454,7 @@ void cloth_clear_cache(Object *ob, ClothModifierData *clmd, float framenr)
 static int do_init_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *result, int framenr)
 {
 #ifdef WITH_OMNICACHE
-	OmniCache *cache = clmd->cache;
+	BOmniCache *cache = clmd->cache;
 #else
 	PointCache *cache = clmd->point_cache;
 #endif
@@ -464,7 +463,7 @@ static int do_init_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *resul
 	if (clmd->clothObject == NULL) {
 		if (!cloth_from_object(ob, clmd, result, framenr, 1)) {
 #ifdef WITH_OMNICACHE
-			OMNI_clear(cache);
+			BKE_omnicache_clear(cache);
 #else
 			BKE_ptcache_invalidate(cache);
 #endif
@@ -474,7 +473,7 @@ static int do_init_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *resul
 	
 		if (clmd->clothObject == NULL) {
 #ifdef WITH_OMNICACHE
-			OMNI_clear(cache);
+			BKE_omnicache_clear(cache);
 #else
 			BKE_ptcache_invalidate(cache);
 #endif
@@ -552,8 +551,7 @@ static int do_step_cloth(Object *ob, ClothModifierData *clmd, DerivedMesh *resul
 void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, DerivedMesh *dm, float (*vertexCos)[3])
 {
 #ifdef WITH_OMNICACHE
-	OmniCache *cache = clmd->cache;
-	float_or_uint omni_framenr;
+	BOmniCache *cache = clmd->cache;
 #else
 	PointCache *cache = clmd->point_cache;;
 	PTCacheID pid;
@@ -567,23 +565,8 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 	framenr= (int)scene->r.cfra;
 
 #ifdef WITH_OMNICACHE
-	if (!cache) {
-		cache = clmd->cache = OMNI_deserialize(clmd->cache_serial, &cache_template);
-		OMNI_mark_outdated(clmd->cache);
-	}
-
-	omni_framenr = OMNI_u_to_fu(framenr);
-
-	{
-		float_or_uint start, end;
-
-		OMNI_get_range(cache, &start, &end, NULL);
-
-		startframe = OMNI_FU_GET(start);
-		endframe = OMNI_FU_GET(end);
-
-		timescale = scene->r.framelen;
-	}
+	BKE_omnicache_getRange(cache, (unsigned int *)&startframe, (unsigned int *)&endframe);
+	timescale = scene->r.framelen;
 #else
 	BKE_ptcache_id_from_cloth(&pid, ob, clmd);
 	BKE_ptcache_id_time(&pid, scene, framenr, &startframe, &endframe, &timescale);
@@ -595,7 +578,7 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		clmd->sim_parms->reset = 0;
 
 #ifdef WITH_OMNICACHE
-		OMNI_clear(cache);
+		BKE_omnicache_clear(cache);
 #else
 		cache->flag |= PTCACHE_OUTDATED;
 		BKE_ptcache_id_reset(scene, &pid, PTCACHE_RESET_OUTDATED);
@@ -618,11 +601,11 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 		return;
 
 #ifdef WITH_OMNICACHE
-	if (framenr == startframe && !OMNI_is_current(cache)) {
-		OMNI_clear(cache);
+	if (framenr == startframe && !BKE_omnicache_isCurrent(cache)) {
+		BKE_omnicache_clear(cache);
 		cloth_free_modifier(clmd);
 		do_init_cloth(ob, clmd, dm, framenr);
-		OMNI_sample_write(cache, omni_framenr, clmd);
+		BKE_omnicache_write(cache, framenr, clmd);
 		return;
 	}
 #else
@@ -639,14 +622,14 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 
 	/* try to read from cache */
 #ifdef WITH_OMNICACHE
-	bool can_simulate = OMNI_sample_is_valid(cache, OMNI_u_to_fu(framenr - 1));
+	bool can_simulate = BKE_omnicache_isValidAtTime(cache, framenr - 1);
 
 	/* TODO (luca): Should respect subframe here, and interpolate between frames. */
-	cache_result = OMNI_sample_read(cache, omni_framenr, clmd);
+	cache_result = (int)BKE_omnicache_read(cache, framenr, clmd);
 
 	BKE_cloth_solver_set_positions(clmd);
 
-	if (!(cache_result & OMNI_READ_INVALID))
+	if (cache_result)
 	{
 		cloth_to_object(ob, clmd, vertexCos);
 
@@ -698,10 +681,10 @@ void clothModifier_do(ClothModifierData *clmd, Scene *scene, Object *ob, Derived
 	/* do simulation */
 #ifdef WITH_OMNICACHE
 	if (!do_step_cloth(ob, clmd, dm, framenr)) {
-		OMNI_sample_mark_invalid_from(cache, omni_framenr);
+		BKE_omnicache_invalidateFromTime(cache, framenr);
 	}
 	else {
-		OMNI_sample_write(cache, omni_framenr, clmd);
+		BKE_omnicache_write(cache, framenr, clmd);
 	}
 #else
 	BKE_ptcache_validate(cache, framenr);
@@ -872,32 +855,6 @@ bool is_basemesh_valid(Object *ob, Object *basemesh, ClothModifierData *clmd)
 
 	return clmd->clothObject->mvert_num == basedm->getNumVerts(basedm);
 }
-
-#ifdef WITH_OMNICACHE
-void cloth_serialize_omnicache(ClothModifierData *clmd)
-{
-	clmd->cache_serial_size = OMNI_serial_get_size(clmd->cache, false);
-	clmd->cache_serial = MEM_mallocN(clmd->cache_serial_size, "OmniCache serial");
-	OMNI_serialize_to_buffer(clmd->cache_serial, clmd->cache, false);
-}
-
-void cloth_update_omnicache_blocks(ClothModifierData *clmd) {
-	if ((clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY) &&
-	    (clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY))
-	{
-		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;lenfact;angoffset;");
-	}
-	else if ((clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_STRUCT_PLASTICITY)) {
-		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;lenfact;");
-	}
-	else if ((clmd->sim_parms->flags & CLOTH_SIMSETTINGS_FLAG_BEND_PLASTICITY)) {
-		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;angoffset;");
-	}
-	else {
-		OMNI_blocks_set(clmd->cache, &cache_template, "x;v;xconst;");
-	}
-}
-#endif
 
 /******************************************************************************
  *

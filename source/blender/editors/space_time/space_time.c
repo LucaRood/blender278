@@ -49,6 +49,7 @@
 #include "BKE_context.h"
 #include "BKE_main.h"
 #include "BKE_modifier.h"
+#include "BKE_omnicache.h"
 #include "BKE_screen.h"
 #include "BKE_pointcache.h"
 
@@ -70,10 +71,6 @@
 #include "ED_markers.h"
 
 #include "time_intern.h"
-
-#ifdef WITH_OMNICACHE
-#  include "omnicache.h"
-#endif
 
 /* ************************ main time area region *********************** */
 
@@ -175,32 +172,22 @@ static void time_draw_omnicaches(Object *ob, const float height, float offset)
 	for (ModifierData *md = ob->modifiers.first; md; md = md->next) {
 		if (md->type == eModifierType_Cloth) {
 			ClothModifierData *clmd = (ClothModifierData *)md;
-			OmniCache *cache = clmd->cache;
+			BOmniCache *cache = clmd->cache;
 			uint start, end, count;
 			int flags;
 			float *array, *fp;
 
-			if (!cache) {
-				continue;
-			}
-
-			{
-				float_or_uint s, e;
-				OMNI_get_range(cache, &s, &e, NULL);
-
-				start = OMNI_FU_GET(s);
-				end = OMNI_FU_GET(e);
-			}
+			BKE_omnicache_getRange(cache, &start, &end);
 
 			count = (end - start + 1) * 4;
 
-			flags = OMNI_is_current(cache) ? 0 : PTCACHE_OUTDATED;
+			flags = BKE_omnicache_isCurrent(cache) ? 0 : PTCACHE_OUTDATED;
 
 			array = MEM_callocN(count * 2 * sizeof(float), "OmniCache timeline array");
 			fp = array;
 
 			for (uint i = start; i <= end; i++) {
-				if (OMNI_sample_is_valid(cache, OMNI_u_to_fu(i))) {
+				if (BKE_omnicache_isValidAtTime(cache, i)) {
 					fp[0] = (float)i - 0.5f;
 					fp[1] = 0.0;
 					fp += 2;

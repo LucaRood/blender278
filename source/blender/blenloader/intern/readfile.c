@@ -83,6 +83,7 @@
 #include "DNA_node_types.h"
 #include "DNA_object_fluidsim_types.h"
 #include "DNA_object_types.h"
+#include "DNA_omnicache_types.h"
 #include "DNA_packedFile_types.h"
 #include "DNA_particle_types.h"
 #include "DNA_property_types.h"
@@ -2477,7 +2478,6 @@ static void lib_link_fcurves(FileData *fd, ID *id, ListBase *list)
 	}
 }
 
-
 /* NOTE: this assumes that link_list has already been called on the list */
 static void direct_link_fmodifiers(FileData *fd, ListBase *list, FCurve *curve)
 {
@@ -4052,6 +4052,17 @@ static void direct_link_material(FileData *fd, Material *ma)
 	BLI_listbase_clear(&ma->gpumaterial);
 }
 
+/* ************ READ OMNICACHE *************** */
+
+static BOmniCache *direct_link_omnicache(FileData *fd, BOmniCache *oldcache)
+{
+	BOmniCache *cache = newdataadr(fd, oldcache);
+
+	cache->omnicache = NULL;
+
+	return cache;
+}
+
 /* ************ READ PARTICLE SETTINGS ***************** */
 /* update this also to writefile.c */
 static const char *ptcache_data_struct[] = {
@@ -5155,8 +5166,7 @@ static void direct_link_modifiers(FileData *fd, ListBase *lb)
 			clmd->coll_parms= newdataadr(fd, clmd->coll_parms);
 
 #ifdef WITH_OMNICACHE
-			clmd->cache = NULL;
-			clmd->cache_serial = newdataadr(fd, clmd->cache_serial);
+			clmd->cache = direct_link_omnicache(fd, clmd->cache);
 #else
 			direct_link_pointcache_list(fd, &clmd->ptcaches, &clmd->point_cache, 0);
 #endif

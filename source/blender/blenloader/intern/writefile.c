@@ -128,6 +128,7 @@
 #include "DNA_node_types.h"
 #include "DNA_object_types.h"
 #include "DNA_object_force_types.h"
+#include "DNA_omnicache_types.h"
 #include "DNA_packedFile_types.h"
 #include "DNA_particle_types.h"
 #include "DNA_property_types.h"
@@ -1271,6 +1272,11 @@ static void write_boid_state(WriteData *wd, BoidState *state)
 #endif
 }
 
+static void write_omnicache(WriteData *wd, BOmniCache *cache)
+{
+	writestruct(wd, DATA, BOmniCache, 1, cache);
+}
+
 /* update this also to readfile.c */
 static const char *ptcache_data_struct[] = {
 	"", // BPHYS_DATA_INDEX
@@ -1758,9 +1764,7 @@ static void write_modifiers(WriteData *wd, ListBase *modbase)
 			writestruct(wd, DATA, EffectorWeights, 1, clmd->sim_parms->effector_weights);
 
 #ifdef WITH_OMNICACHE
-			if (clmd->cache_serial) {
-				writedata(wd, DATA, clmd->cache_serial_size, clmd->cache_serial);
-			}
+			write_omnicache(wd, clmd->cache);
 #else
 			write_pointcaches(wd, &clmd->ptcaches);
 #endif

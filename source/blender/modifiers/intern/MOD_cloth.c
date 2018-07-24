@@ -52,6 +52,7 @@
 #include "BKE_key.h"
 #include "BKE_library_query.h"
 #include "BKE_modifier.h"
+#include "BKE_omnicache.h"
 
 #ifndef WITH_OMNICACHE
 #  include "BKE_pointcache.h"
@@ -61,10 +62,6 @@
 
 #include "MOD_util.h"
 
-#ifdef WITH_OMNICACHE
-#  include "omnicache.h"
-#endif
-
 static void initData(ModifierData *md)
 {
 	ClothModifierData *clmd = (ClothModifierData *) md;
@@ -72,7 +69,9 @@ static void initData(ModifierData *md)
 	clmd->sim_parms = MEM_callocN(sizeof(ClothSimSettings), "cloth sim parms");
 	clmd->coll_parms = MEM_callocN(sizeof(ClothCollSettings), "cloth coll parms");
 
-#ifndef WITH_OMNICACHE
+#ifdef WITH_OMNICACHE
+	clmd->cache = BKE_omnicache_new(bOmnicacheType_Cloth);
+#else
 	clmd->point_cache = BKE_ptcache_add(&clmd->ptcaches);
 #endif
 
@@ -195,13 +194,10 @@ static void copyData(const ModifierData *md, ModifierData *target)
 		MEM_freeN(tclmd->coll_parms);
 
 #ifdef WITH_OMNICACHE
-	OMNI_free(tclmd->cache);
-	MEM_freeN(tclmd->cache_serial);
-	tclmd->cache = OMNI_duplicate(clmd->cache, false);
+	BKE_omnicache_free(tclmd->cache);
+	tclmd->cache = BKE_omnicache_duplicate(clmd->cache);
 
-	cloth_serialize_omnicache(tclmd);
-
-	OMNI_mark_invalid(tclmd->cache);
+	BKE_omnicache_invalidate(tclmd->cache);
 #else
 	BKE_ptcache_free_list(&tclmd->ptcaches);
 	tclmd->point_cache = BKE_ptcache_copy_list(&tclmd->ptcaches, &clmd->ptcaches, true);
@@ -240,16 +236,8 @@ static void freeData(ModifierData *md)
 			MEM_freeN(clmd->coll_parms);
 
 #ifdef WITH_OMNICACHE
-		if (clmd->cache) {
-			OMNI_free(clmd->cache);
-			clmd->cache = NULL;
-		}
-
-		if (clmd->cache_serial) {
-			MEM_freeN(clmd->cache_serial);
-			clmd->cache_serial = NULL;
-			clmd->cache_serial_size = 0;
-		}
+		BKE_omnicache_free(clmd->cache);
+		clmd->cache = NULL;
 #else
 		BKE_ptcache_free_list(&clmd->ptcaches);
 		clmd->point_cache = NULL;
