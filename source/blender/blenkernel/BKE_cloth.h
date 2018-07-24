@@ -96,7 +96,7 @@ typedef struct Cloth {
 	struct BVHTree 		*bvhselftree;			/* collision tree for this cloth object */
 	struct MVertTri		*tri;
 	struct Implicit_Data	*implicit; 		/* our implicit solver connects to this pointer */
-	int last_frame;		/* Unused, cache queries used instead. */
+	int last_frame;		/* Only used with PointCache. */
 	float adapt_fact;	/* Stability dt compensation factor */
 	float max_col_trouble;
 } Cloth;
