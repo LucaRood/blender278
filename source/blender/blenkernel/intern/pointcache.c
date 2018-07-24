@@ -64,6 +64,7 @@
 #include "BKE_main.h"
 #include "BKE_modifier.h"
 #include "BKE_object.h"
+#include "BKE_omnicache.h"
 #include "BKE_particle.h"
 #include "BKE_pointcache.h"
 #include "BKE_scene.h"
@@ -3325,7 +3326,13 @@ int  BKE_ptcache_object_reset(Scene *scene, Object *ob, int mode)
 
 	for (md=ob->modifiers.first; md; md=md->next) {
 		if (md->type == eModifierType_Cloth) {
-#ifndef WITH_OMNICACHE
+			/* Workaround to get OmniCache working in the old depsgraph.
+			 * Proper implementation is done for the new depsgraph. */
+#ifdef WITH_OMNICACHE
+			ClothModifierData *clmd = (ClothModifierData *)md;
+			BKE_omnicache_reset(clmd->cache, scene);
+			reset |= 1;
+#else
 			BKE_ptcache_id_from_cloth(&pid, ob, (ClothModifierData*)md);
 			reset |= BKE_ptcache_id_reset(scene, &pid, mode);
 #endif

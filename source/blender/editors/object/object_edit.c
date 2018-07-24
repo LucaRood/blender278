@@ -478,6 +478,7 @@ bool ED_object_editmode_exit_ex(Main *bmain, Scene *scene, Object *obedit, int f
 		}
 		BLI_freelistN(&pidlist);
 
+		/* TODO (luca): Perhaps OmniCache needs to be cleared here. */
 		BKE_ptcache_object_reset(scene, obedit, PTCACHE_RESET_OUTDATED);
 
 		/* also flush ob recalc, doesn't take much overhead, but used for particles */
