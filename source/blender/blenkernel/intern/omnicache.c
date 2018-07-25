@@ -118,64 +118,64 @@ void BKE_omnicache_free(BOmniCache *cache)
 
 void BKE_omnicache_blockAdd(BOmniCache *cache, unsigned int block)
 {
-	OmniCache *omnic = ensure_cache(cache);
-	OmniCacheTemplate *temp = get_template_from_type(cache->type);
-
 	cache->blocks_flag |= (1 << block);
 
-	OMNI_block_add_by_index(omnic, temp, block);
+	if (cache->omnicache) {
+		OmniCacheTemplate *temp = get_template_from_type(cache->type);
+
+		OMNI_block_add_by_index(cache->omnicache, temp, block);
+	}
 }
 
 void BKE_omnicache_blockRemove(BOmniCache *cache, unsigned int block)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
 	cache->blocks_flag &= ~(1 << block);
 
-	OMNI_block_remove_by_index(omnic, block);
+	if (cache->omnicache) {
+		OMNI_block_remove_by_index(cache->omnicache, block);
+	}
 }
 
 void BKE_omnicache_reset(BOmniCache *cache, Scene *scene)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
-	OMNI_sample_clear_from(omnic, OMNI_u_to_fu(CFRA + 1));
-	OMNI_mark_outdated(omnic);
+	if (cache->omnicache) {
+		OMNI_sample_clear_from(cache->omnicache, OMNI_u_to_fu(CFRA + 1));
+		OMNI_mark_outdated(cache->omnicache);
+	}
 }
 
 void BKE_omnicache_clear(BOmniCache *cache)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
-	OMNI_clear(omnic);
+	if (cache->omnicache) {
+		OMNI_clear(cache->omnicache);
+	}
 }
 
 void BKE_omnicache_invalidate(BOmniCache *cache)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
-	OMNI_mark_invalid(omnic);
+	if (cache->omnicache) {
+		OMNI_mark_invalid(cache->omnicache);
+	}
 }
 
 void BKE_omnicache_invalidateFromTime(BOmniCache *cache, unsigned int time)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
-	OMNI_sample_mark_invalid_from(omnic, OMNI_u_to_fu(time));
+	if (cache->omnicache) {
+		OMNI_sample_mark_invalid_from(cache->omnicache, OMNI_u_to_fu(time));
+	}
 }
 
 bool BKE_omnicache_isCurrent(BOmniCache *cache)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
-	return OMNI_is_current(omnic) && OMNI_get_num_cached(omnic);
+	return (cache->omnicache &&
+	        OMNI_is_current(cache->omnicache) &&
+	        OMNI_get_num_cached(cache->omnicache));
 }
 
 bool BKE_omnicache_isValidAtTime(BOmniCache *cache, unsigned int time)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
-	return OMNI_sample_is_valid(omnic, OMNI_u_to_fu(time));
+	return (cache->omnicache &&
+	        OMNI_sample_is_valid(cache->omnicache, OMNI_u_to_fu(time)));
 }
 
 /* TODO (luca): Don't ignore return value here. */
@@ -188,9 +188,8 @@ void BKE_omnicache_write(BOmniCache *cache, unsigned int time, void *data)
 
 bool BKE_omnicache_read(BOmniCache *cache, unsigned int time, void *data)
 {
-	OmniCache *omnic = ensure_cache(cache);
-
-	return OMNI_sample_read(omnic, OMNI_u_to_fu(time), data) != OMNI_READ_INVALID;
+	return (cache->omnicache &&
+	        OMNI_sample_read(cache->omnicache, OMNI_u_to_fu(time), data) != OMNI_READ_INVALID);
 }
 
 void BKE_omnicache_getRange(BOmniCache *cache, unsigned int *start, unsigned int *end)
