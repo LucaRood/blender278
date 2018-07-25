@@ -62,6 +62,7 @@ bool BKE_omnicache_isValidAtTime(BOmniCache *cache, unsigned int time);
 void BKE_omnicache_write(BOmniCache *cache, unsigned int time, void *data);
 bool BKE_omnicache_read(BOmniCache *cache, unsigned int time, void *data);
 
+void BKE_omnicache_setRange(BOmniCache *cache, unsigned int start, unsigned int end);
 void BKE_omnicache_getRange(BOmniCache *cache, unsigned int *start, unsigned int *end);
 
 #endif /* WITH_OMNICACHE */

@@ -192,6 +192,19 @@ bool BKE_omnicache_read(BOmniCache *cache, unsigned int time, void *data)
 	        OMNI_sample_read(cache->omnicache, OMNI_u_to_fu(time), data) != OMNI_READ_INVALID);
 }
 
+void BKE_omnicache_setRange(BOmniCache *cache, unsigned int start, unsigned int end)
+{
+	cache->time_start = start;
+	cache->time_end = end;
+
+	if (cache->omnicache) {
+		OMNI_set_range(cache->omnicache,
+		               OMNI_u_to_fu(cache->time_start),
+		               OMNI_u_to_fu(cache->time_end),
+		               OMNI_u_to_fu(cache->time_step));
+	}
+}
+
 void BKE_omnicache_getRange(BOmniCache *cache, unsigned int *start, unsigned int *end)
 {
 	*start = cache->time_start;

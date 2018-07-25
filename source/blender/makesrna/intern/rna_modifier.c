@@ -2900,6 +2900,11 @@ static void rna_def_modifier_cloth(BlenderRNA *brna)
 	RNA_def_property_int_sdna(prop, NULL, "hair_grid_res");
 	RNA_def_property_clear_flag(prop, PROP_EDITABLE);
 	RNA_def_property_ui_text(prop, "Hair Grid Resolution", "");
+
+	prop = RNA_def_property(srna, "cache", PROP_POINTER, PROP_NONE);
+	RNA_def_property_struct_type(prop, "OmniCache");
+	RNA_def_property_pointer_sdna(prop, NULL, "cache");
+	RNA_def_property_ui_text(prop, "OmniCache", "");
 }
 
 static void rna_def_modifier_smoke(BlenderRNA *brna)
