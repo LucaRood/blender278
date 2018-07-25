@@ -22,6 +22,7 @@ from bpy.types import Menu, Panel
 
 from .properties_physics_common import (
     point_cache_ui,
+    omnicache_ui,
     effector_weights_ui,
 )
 
@@ -172,13 +173,12 @@ class PHYSICS_PT_cloth_cache(PhysicButtonsPanel, Panel):
     bl_options = {'DEFAULT_CLOSED'}
     COMPAT_ENGINES = {'BLENDER_RENDER'}
 
-    @classmethod
-    def poll(cls, context):
-        return context.cloth and context.cloth.point_cache
-
     def draw(self, context):
         md = context.cloth
-        point_cache_ui(self, context, md.point_cache, cloth_panel_enabled(md), 'CLOTH')
+        if md.point_cache is not None:
+            point_cache_ui(self, context, md.point_cache, cloth_panel_enabled(md), 'CLOTH')
+        elif md.cache is not None:
+            omnicache_ui(self, md.cache)
 
 
 class PHYSICS_PT_cloth_shape(PhysicButtonsPanel, Panel):

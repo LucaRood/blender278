@@ -205,6 +205,14 @@ def point_cache_ui(self, context, cache, enabled, cachetype):
         col.operator("ptcache.bake_all", text="Update All To Frame").bake = False
 
 
+def omnicache_ui(self, cache):
+    layout = self.layout
+
+    row = layout.row()
+    row.prop(cache, "time_start")
+    row.prop(cache, "time_end")
+
+
 def effector_weights_ui(self, context, weights, weight_type):
     layout = self.layout
 
