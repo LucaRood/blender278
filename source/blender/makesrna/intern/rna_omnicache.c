@@ -32,6 +32,7 @@
 #ifdef RNA_RUNTIME
 
 #include "DNA_object_types.h"
+#include "DNA_omnicache_types.h"
 
 #include "BKE_context.h"
 #include "BKE_depsgraph.h"
