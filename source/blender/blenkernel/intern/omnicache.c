@@ -168,7 +168,7 @@ bool BKE_omnicache_isCurrent(BOmniCache *cache)
 {
 	OmniCache *omnic = ensure_cache(cache);
 
-	return OMNI_is_current(omnic);
+	return OMNI_is_current(omnic) && OMNI_get_num_cached(omnic);
 }
 
 bool BKE_omnicache_isValidAtTime(BOmniCache *cache, unsigned int time)
