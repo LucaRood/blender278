@@ -195,13 +195,8 @@ bool BKE_omnicache_read(BOmniCache *cache, unsigned int time, void *data)
 
 void BKE_omnicache_getRange(BOmniCache *cache, unsigned int *start, unsigned int *end)
 {
-	OmniCache *omnic = ensure_cache(cache);
-	float_or_uint s, e;
-
-	OMNI_get_range(omnic, &s, &e, NULL);
-
-	*start = OMNI_FU_GET(s);
-	*end = OMNI_FU_GET(e);
+	*start = cache->time_start;
+	*end = cache->time_end;
 }
 
 #endif /* WITH_OMNICACHE */
