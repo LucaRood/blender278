@@ -677,6 +677,40 @@ uint OMNI_get_num_cached(OmniCache *cache)
 	return cache->def.num_samples_tot;
 }
 
+void OMNI_move_start(OmniCache *cache, float_or_uint time_initial)
+{
+	float_or_uint length;
+
+	assert(TTYPE_FLOAT(cache->def.ttype) == time_initial.isf);
+
+	length = fu_sub(cache->def.tfinal, cache->def.tinitial);
+
+	cache->def.tinitial = time_initial;
+	cache->def.tfinal = fu_add(time_initial, length);
+}
+
+void OMNI_move_end(OmniCache *cache, float_or_uint time_final)
+{
+	assert(TTYPE_FLOAT(cache->def.ttype) == time_final.isf);
+	assert(FU_LE(cache->def.tinitial, time_final));
+
+	/* TODO: Clear after should call a clearing function,
+	 * instead of implementing directly here. */
+	{
+		OmniSample *sample = NULL;
+		sample_get_from_time(cache, time_final, false, NULL, &sample);
+
+		if (sample) {
+			samples_iterate(sample,
+			                sample_remove_list,
+			                sample_remove_root,
+			                sample_clear_ref);
+		}
+	}
+
+	cache->def.tfinal = time_final;
+}
+
 bool OMNI_is_valid(OmniCache *cache)
 {
 	return IS_VALID(cache);

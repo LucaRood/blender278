@@ -178,6 +178,9 @@ void OMNI_set_range(OmniCache *cache, float_or_uint time_initial, float_or_uint 
 void OMNI_get_range(OmniCache *cache, float_or_uint *time_initial, float_or_uint *time_final, float_or_uint *time_step);
 uint OMNI_get_num_cached(OmniCache *cache);
 
+void OMNI_move_start(OmniCache *cache, float_or_uint time_initial);
+void OMNI_move_end(OmniCache *cache, float_or_uint time_final);
+
 bool OMNI_is_valid(OmniCache *cache);
 bool OMNI_is_current(OmniCache *cache);
 
