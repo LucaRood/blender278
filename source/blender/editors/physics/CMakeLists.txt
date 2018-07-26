@@ -45,6 +45,7 @@ set(SRC
 	physics_fluid.c
 	physics_ops.c
 	physics_pointcache.c
+	physics_omnicache.c
 	rigidbody_constraint.c
 	rigidbody_object.c
 	rigidbody_world.c
@@ -66,6 +67,10 @@ if(WITH_BULLET)
 		../../../../intern/rigidbody
 	)
 	add_definitions(-DWITH_BULLET)
+endif()
+
+if(WITH_OMNICACHE)
+	add_definitions(-DWITH_OMNICACHE)
 endif()
 
 add_definitions(${GL_DEFINITIONS})

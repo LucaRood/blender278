@@ -240,6 +240,17 @@ static void nla_strip_get_color_inside(AnimData *adt, NlaStrip *strip, float col
 			UI_GetThemeColor3fv(TH_NLA_SOUND, color);
 		}
 	}
+	else if (strip->type == NLASTRIP_TYPE_OMNICACHE) {
+		/* OmniCache Clip */
+		if (strip->flag & NLASTRIP_FLAG_SELECT) {
+			/* selected - use a bright orange color */
+			UI_GetThemeColor3fv(TH_NLA_OMNICACHE_SEL, color);
+		}
+		else {
+			/* normal, unselected strip - use (hardly noticeable) orange tinge */
+			UI_GetThemeColor3fv(TH_NLA_OMNICACHE, color);
+		}
+	}
 	else {
 		/* Action Clip (default/normal type of strip) */
 		if (adt && (adt->flag & ADT_NLA_EDIT_ON) && (adt->actstrip == strip)) {

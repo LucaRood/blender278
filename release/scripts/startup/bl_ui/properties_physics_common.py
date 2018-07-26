@@ -208,9 +208,12 @@ def point_cache_ui(self, context, cache, enabled, cachetype):
 def omnicache_ui(self, cache):
     layout = self.layout
 
+    layout.context_pointer_set("omnicache", cache)
+
     row = layout.row()
     row.prop(cache, "time_start")
     row.prop(cache, "time_end")
+    layout.operator("omnicache.push_nla")
 
 
 def effector_weights_ui(self, context, weights, weight_type):

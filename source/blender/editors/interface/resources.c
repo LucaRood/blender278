@@ -655,6 +655,12 @@ const unsigned char *UI_ThemeGetColorPtr(bTheme *btheme, int spacetype, int colo
 				case TH_NLA_SOUND_SEL:
 					cp = ts->nla_sound_sel;
 					break;
+				case TH_NLA_OMNICACHE:
+					cp = ts->nla_omnicache;
+					break;
+				case TH_NLA_OMNICACHE_SEL:
+					cp = ts->nla_omnicache_sel;
+					break;
 
 				case TH_WIDGET_EMBOSS:
 					cp = btheme->tui.widget_emboss; break;
@@ -1039,6 +1045,8 @@ void ui_theme_init_default(void)
 	rgba_char_args_set(btheme->tnla.nla_meta_sel,       105, 33, 150, 255);
 	rgba_char_args_set(btheme->tnla.nla_sound,          43, 61, 61, 255);
 	rgba_char_args_set(btheme->tnla.nla_sound_sel,      31, 122, 122, 255);
+	rgba_char_args_set(btheme->tnla.nla_omnicache,      47, 19, 18, 255);
+	rgba_char_args_set(btheme->tnla.nla_omnicache_sel,  208, 33, 13, 255);
 
 	rgba_char_args_set(btheme->tnla.keyborder,               0,   0,   0, 255);
 	rgba_char_args_set(btheme->tnla.keyborder_select,        0,   0,   0, 255);
@@ -2772,6 +2780,13 @@ void init_userdef_do_versions(Main *bmain)
 	 */
 	{
 		/* (keep this block even if it becomes empty). */
+
+		bTheme *btheme;
+
+		for (btheme = U.themes.first; btheme; btheme = btheme->next) {
+			rgba_char_args_set(btheme->tnla.nla_omnicache,      47, 19, 18, 255);
+			rgba_char_args_set(btheme->tnla.nla_omnicache_sel,  208, 33, 13, 255);
+		}
 	}
 
 	if (U.pixelsize == 0.0f)

@@ -450,6 +450,7 @@ extern StructRNA RNA_ObstacleFluidSettings;
 extern StructRNA RNA_OceanModifier;
 extern StructRNA RNA_OceanTexData;
 extern StructRNA RNA_OceanTexture;
+extern StructRNA RNA_OmniCache;
 extern StructRNA RNA_Operator;
 extern StructRNA RNA_OperatorFileListElement;
 extern StructRNA RNA_OperatorMousePath;

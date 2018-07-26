@@ -333,6 +333,7 @@ typedef struct ThemeSpace {
 	char nla_transition[4], nla_transition_sel[4]; /* NLA "Transition" strips */
 	char nla_meta[4], nla_meta_sel[4];             /* NLA "Meta" strips */
 	char nla_sound[4], nla_sound_sel[4];           /* NLA "Sound" strips */
+	char nla_omnicache[4], nla_omnicache_sel[4];   /* NLA "OmniCache" strips */
 
 	/* info */
 	char info_selected[4], info_selected_text[4];

@@ -208,6 +208,13 @@ static void operatortypes_pointcache(void)
 	WM_operatortype_append(PTCACHE_OT_remove);
 }
 
+/**************************** OmniCache **********************************/
+
+static void operatortypes_omnicache(void)
+{
+	WM_operatortype_append(OMNICACHE_OT_push_nla);
+}
+
 /********************************* dynamic paint ***********************************/
 
 static void operatortypes_dynamicpaint(void)
@@ -237,6 +244,7 @@ void ED_operatortypes_physics(void)
 	operatortypes_boids();
 	operatortypes_fluid();
 	operatortypes_pointcache();
+	operatortypes_omnicache();
 	operatortypes_dynamicpaint();
 }
 

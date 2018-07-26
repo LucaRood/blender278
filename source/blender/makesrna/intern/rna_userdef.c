@@ -2823,6 +2823,20 @@ static void rna_def_userdef_theme_space_nla(BlenderRNA *brna)
 	                         "Sound Strip - Selected (for timing speaker sounds)");
 	RNA_def_property_update(prop, 0, "rna_userdef_update");
 
+	prop = RNA_def_property(srna, "omnicache_strips", PROP_FLOAT, PROP_COLOR_GAMMA);
+	RNA_def_property_float_sdna(prop, NULL, "nla_omnicache");
+	RNA_def_property_array(prop, 3);
+	RNA_def_property_ui_text(prop, "OmniCache Strips",
+	                         "OmniCache Strip - Unselected (for timing OmniCaches)");
+	RNA_def_property_update(prop, 0, "rna_userdef_update");
+
+	prop = RNA_def_property(srna, "omnicache_strips_selected", PROP_FLOAT, PROP_COLOR_GAMMA);
+	RNA_def_property_float_sdna(prop, NULL, "nla_omnicache_sel");
+	RNA_def_property_array(prop, 3);
+	RNA_def_property_ui_text(prop, "OmniCache Strips Selected",
+	                         "OmniCache Strip - Selected (for timing OmniCaches)");
+	RNA_def_property_update(prop, 0, "rna_userdef_update");
+
 	prop = RNA_def_property(srna, "tweak", PROP_FLOAT, PROP_COLOR_GAMMA);
 	RNA_def_property_float_sdna(prop, NULL, "nla_tweaking");
 	RNA_def_property_array(prop, 3);

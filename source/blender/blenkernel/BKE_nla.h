@@ -34,6 +34,7 @@
  */
 
 struct AnimData;
+struct BOmniCache;
 struct Main;
 struct NlaStrip;
 struct NlaTrack;
@@ -59,6 +60,7 @@ struct NlaTrack *BKE_nlatrack_add(struct AnimData *adt, struct NlaTrack *prev);
 struct NlaStrip *BKE_nlastrip_new(struct bAction *act);
 struct NlaStrip *BKE_nlastack_add_strip(struct AnimData *adt, struct bAction *act);
 struct NlaStrip *BKE_nla_add_soundstrip(struct Scene *scene, struct Speaker *spk);
+struct NlaStrip *BKE_nla_add_omnicache_strip(struct BOmniCache *omnic);
 
 /* ----------------------------- */
 /* API */
@@ -119,6 +121,7 @@ bool BKE_nla_action_stash(struct AnimData *adt);
 /* ............ */
 
 void BKE_nla_action_pushdown(struct AnimData *adt);
+void BKE_nla_omnicache_pushdown(struct AnimData *adt, struct BOmniCache *omnic);
 
 bool BKE_nla_tweakmode_enter(struct AnimData *adt);
 void BKE_nla_tweakmode_exit(struct AnimData *adt);

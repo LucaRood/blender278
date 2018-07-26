@@ -641,6 +641,8 @@ typedef struct NlaStrip {
 
 	int flag;                   /* settings */
 	int pad2;
+
+	struct BOmniCache *omnic;   /* OmniCache referenced in this strip (instead of action) */
 } NlaStrip;
 
 /* NLA Strip Blending Mode */
@@ -708,7 +710,10 @@ typedef enum eNlaStrip_Type {
 	NLASTRIP_TYPE_META,
 
 		/* 'emit sound' - a strip which is used for timing when speaker emits sounds */
-	NLASTRIP_TYPE_SOUND
+	NLASTRIP_TYPE_SOUND,
+
+		/* Strip used to retime and blend OmniCaches. */
+	NLASTRIP_TYPE_OMNICACHE,
 } eNlaStrip_Type;
 
 /* NLA Tracks ------------------------------------- */

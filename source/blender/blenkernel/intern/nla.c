@@ -48,6 +48,7 @@
 #include "BLT_translation.h"
 
 #include "DNA_anim_types.h"
+#include "DNA_omnicache_types.h"
 #include "DNA_scene_types.h"
 #include "DNA_sound_types.h"
 #include "DNA_speaker_types.h"
@@ -58,6 +59,7 @@
 #include "BKE_library.h"
 #include "BKE_main.h"
 #include "BKE_nla.h"
+#include "BKE_omnicache.h"
 
 #ifdef WITH_AUDASPACE
 #  include AUD_SPECIAL_H
@@ -393,6 +395,45 @@ NlaStrip *BKE_nla_add_soundstrip(Scene *scene, Speaker *speaker)
 
 	/* return this strip */
 	return strip;
+}
+
+NlaStrip *BKE_nla_add_omnicache_strip(BOmniCache *omnic)
+{
+#ifdef WITH_OMNICACHE
+	NlaStrip *strip = NULL;
+
+	/* sanity checks */
+	if (!omnic) {
+		return NULL;
+	}
+
+	/* create a new NLA strip */
+	strip = MEM_callocN(sizeof(NlaStrip), "NlaOmniCacheStrip");
+
+	if (strip == NULL) {
+		return NULL;
+	}
+
+	strip->type = NLASTRIP_TYPE_OMNICACHE;
+	strip->flag = NLASTRIP_FLAG_SELECT;
+	strip->extendmode = NLASTRIP_EXTEND_NOTHING;
+
+	strip->influence = 1.0f;
+	strip->scale = 1.0f;
+	strip->repeat = 1.0f;
+
+	strip->start = (float)omnic->time_start;
+	strip->end = (float)omnic->time_end;
+
+	if (strip->start == strip->end) {
+		strip->end += 1.0f;
+	}
+
+	return strip;
+#else
+	UNUSED_VARS(omnic);
+	return NULL;
+#endif
 }
 
 /* *************************************************** */
@@ -1493,6 +1534,9 @@ void BKE_nlastrip_validate_name(AnimData *adt, NlaStrip *strip)
 			case NLASTRIP_TYPE_META: /* meta */
 				BLI_strncpy(strip->name, "Meta", sizeof(strip->name));
 				break;
+			case NLASTRIP_TYPE_OMNICACHE:
+				BLI_strncpy(strip->name, "OmniCache", sizeof(strip->name));
+				break;
 			default:
 				BLI_strncpy(strip->name, "NLA Strip", sizeof(strip->name));
 				break;
@@ -1833,6 +1877,30 @@ void BKE_nla_action_pushdown(AnimData *adt)
 		/* make strip the active one... */
 		BKE_nlastrip_set_active(adt, strip);
 	}
+}
+
+void BKE_nla_omnicache_pushdown(AnimData *adt, BOmniCache *omnic)
+{
+#ifdef WITH_OMNICACHE
+
+	/* Sanity checks. */
+	/* TODO: need to report the error for this. */
+	if (ELEM(NULL, adt, omnic)) {
+		return;
+	}
+
+	{
+		NlaTrack *nlt = BKE_nlatrack_add(adt, NULL);
+		NlaStrip *strip = BKE_nla_add_omnicache_strip(omnic);
+
+		BKE_nlatrack_add_strip(nlt, strip);
+		BKE_nlastrip_validate_name(adt, strip);
+
+		BKE_nlastrip_set_active(adt, strip);
+	}
+#else
+	UNUSED_VARS(adt, omnic);
+#endif
 }
 
 /* Find the active strip + track combo, and set them up as the tweaking track,
